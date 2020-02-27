@@ -1,0 +1,131 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+
+Description: Reference Architecture to host Moodle on AWS - Creates ElastiCache cache cluster
+
+Metadata:
+
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+    - Label:
+        default: Cache Parameters
+      Parameters:
+        - ElastiCacheNodeType
+        - ElastiCacheClusterName
+        - ElastiCacheSecurityGroup
+        - NumberOfSubnets
+        - Subnet
+    ParameterLabels:
+      ElastiCacheClusterName:
+        default: Cache Cluster Name
+      ElastiCacheNodeType:
+        default: Cache Cluster Node Type
+      ElastiCacheSecurityGroup:
+        default: ElastiCache Security Group
+      NumberOfSubnets:
+        default: Number of subnets
+      Subnet:
+        default: Subnets
+
+Parameters:
+
+  ElastiCacheClusterName:
+    AllowedPattern: ^([a-zA-Z0-9]*)$
+    Description: The ElastiCache cluster name.
+    Type: String
+  ElastiCacheNodeType:
+    AllowedValues:
+      - cache.r4.large
+      - cache.r4.xlarge
+      - cache.r4.2xlarge
+      - cache.r4.4xlarge
+      - cache.r4.8xlarge
+      - cache.r4.16xlarge
+      - cache.r5.large
+      - cache.r5.xlarge
+      - cache.r5.2xlarge
+      - cache.r5.4xlarge
+      - cache.r5.12xlarge
+      - cache.r5.24xlarge
+    ConstraintDescription: Must be a valid Amazon ElastiCache node type.
+    Default: cache.r5.large
+    Description: The Amazon ElastiCache cluster node type.
+    Type: String
+  ElastiCacheSecurityGroup:
+    Description: Select the ElastiCache security group.
+    Type: AWS::EC2::SecurityGroup::Id
+  NumberOfSubnets:
+    AllowedValues:
+    - 2
+    - 3
+    Default: 3
+    Description: Number of subnets. This must match your selections in the list of subnets below.
+    Type: String 
+  Subnet:
+    Description: Select existing subnets. The number selected must match the number of subnets above. Subnets selected must be in separate AZs.
+    Type: List<AWS::EC2::Subnet::Id>
+
+Conditions:
+  HasThreeAZs:
+    !Not [!Equals [2, !Ref NumberOfSubnets]] 
+
+Resources:
+
+  # ElastiCacheCluster:
+  #   Type: AWS::ElastiCache::CacheCluster
+  #   Properties:
+  #     AZMode: cross-az
+  #     CacheNodeType: !Ref ElastiCacheNodeType
+  #     CacheSubnetGroupName: !Ref ElastiCacheSubnetGroup
+  #     CacheParameterGroupName: !Ref ElastiCacheParameterGroup
+  #     ClusterName: !Ref ElastiCacheClusterName
+  #     Engine: redis
+  #     EngineVersion: 5.0.6
+  #     NumCacheNodes: 1
+  #     Tags:
+  #       - Key: Name
+  #         Value: !Join [ '', [ 'Moodle / ', !Ref 'AWS::StackName' ] ]
+  #     VpcSecurityGroupIds:
+  #       - !Ref ElastiCacheSecurityGroup
+
+  ElastiCacheReplicationGroup:
+    Type: "AWS::ElastiCache::ReplicationGroup"
+    Properties:
+      CacheNodeType: !Ref ElastiCacheNodeType
+      CacheParameterGroupName: !Ref ElastiCacheParameterGroup
+      CacheSubnetGroupName: !Ref ElastiCacheSubnetGroup
+      Engine: redis
+      EngineVersion: 5.0.6
+      NumCacheClusters: !Ref NumberOfSubnets
+      ReplicationGroupDescription: Redis cluster for Moodle
+      ReplicationGroupId: !Ref ElastiCacheClusterName
+      SecurityGroupIds:
+        - !Ref ElastiCacheSecurityGroup
+      SnapshotRetentionLimit: 4
+      Tags:
+        - Key: Name
+          Value: !Join [ '', [ 'Moodle / ', !Ref 'AWS::StackName' ] ]
+
+  ElastiCacheSubnetGroup: 
+    Type: AWS::ElastiCache::SubnetGroup
+    Properties: 
+      CacheSubnetGroupName: !Join [ '', [ !Ref ElastiCacheClusterName, SubnetGroup ] ]
+      Description: ElastiCache Subnet Group for Moodle
+      SubnetIds:
+        !If
+        - HasThreeAZs
+        - [!Select [ 0, !Ref Subnet ], !Select [ 1, !Ref Subnet ], !Select [ 2, !Ref Subnet ]]
+        - [!Select [ 0, !Ref Subnet ], !Select [ 1, !Ref Subnet ]]
+
+  ElastiCacheParameterGroup:
+    Type: "AWS::ElastiCache::ParameterGroup"
+    Properties:
+      CacheParameterGroupFamily: redis5.0
+      Description: ElastiCache Parameter Group for Moodle
+      Properties:
+        timeout: '0'
+
+Outputs:
+  ElastiCacheClusterEndpointAddress:
+    Description: ElastiCache Redis endpoint address
+    Value: !GetAtt ElastiCacheReplicationGroup.PrimaryEndPoint.Address

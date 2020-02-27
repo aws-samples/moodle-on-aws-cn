@@ -1,0 +1,760 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+
+Description: Reference Architecture to host Moodle on AWS - Creates Moodle web Auto Scaling group
+
+Metadata:
+
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+    - Label:
+        default: Web Parameters
+      Parameters:
+        - EC2KeyName
+        - WebInstanceType
+        - WebAsgMax
+        - WebAsgMin
+        - WebSecurityGroup
+        - NumberOfSubnets
+        - Subnet
+        - PublicAlbTargetGroupArn
+        - PublicAlbHostname
+        - SslCertificate
+    - Label:
+        default: Moodle Parameters
+      Parameters:
+        - DomainName
+        - MoodleLocale
+    - Label:
+        default: Database Parameters
+      Parameters:
+        - DatabaseClusterEndpointAddress
+        - DatabaseName
+        - DatabaseMasterUsername
+        - DatabaseMasterPassword
+        - DatabaseClusterEndpointAddress
+        - ElastiCacheClusterEndpointAddress
+    - Label:
+        default: File System Parameters
+      Parameters:
+        - ElasticFileSystem
+    ParameterLabels:
+      DatabaseClusterEndpointAddress:
+        default: DB Cluster Endpoint Address
+      DatabaseMasterUsername:
+        default: DB Master Username  
+      DatabaseMasterPassword:
+        default: DB Master Password
+      DatabaseName:
+        default: DB Name
+      ElastiCacheClusterEndpointAddress:
+        default: ElastiCache Endpoint Address
+      ElasticFileSystem:
+        default: EFS File System
+      EC2KeyName:
+        default: Existing Key Pair
+      NumberOfSubnets:
+        default: Number of subnets
+      PublicAlbTargetGroupArn:
+        default: Public ALB Target Group Arn
+      PublicAlbHostname:
+        default: Public ALB Hostname
+      SslCertificate:
+        default: ACM Cert attached to Public ALB
+      Subnet:
+        default: Subnets
+      WebAsgMax:
+        default: Web ASG Max
+      WebAsgMin:
+        default: Web ASG Min
+      WebInstanceType:
+        default: Web Instance Type
+      WebSecurityGroup:
+        default: Web Security Group
+      DomainName:
+        default: Site Domain
+      MoodleLocale:
+        default: Language Code
+
+Parameters:
+
+  ElastiCacheClusterEndpointAddress:
+    Description: The ElastiCacheCluster cluster endpoint address.
+    Type: String
+  DatabaseClusterEndpointAddress:
+    Description: The RDS cluster endpoint address.
+    Type: String
+  DatabaseMasterUsername:
+    AllowedPattern: ^([a-zA-Z0-9]*)$
+    Description: The Amazon RDS master username.
+    ConstraintDescription: Must contain only alphanumeric characters and be at least 8 characters.
+    MaxLength: 16
+    MinLength: 1
+    Type: String
+  DatabaseMasterPassword:
+    AllowedPattern: ^([a-z0-9A-Z`~!#$%^&*()_+,\\-])*$
+    ConstraintDescription: Must be letters (upper or lower), numbers, and these special characters '_'`~!#$%^&*()_+,-
+    Description: The Amazon RDS master password.
+    MaxLength: 41
+    MinLength: 8
+    NoEcho: true
+    Type: String
+  DatabaseName:
+    AllowedPattern: ^([a-zA-Z0-9]*)$
+    Description: The Amazon RDS master database name.
+    Type: String
+    Default: moodle
+  ElasticFileSystem:
+    AllowedPattern: ^(fs-)([a-z0-9]{8}|[a-z0-9]{17})$
+    Description: The Amazon EFS file system id.
+    Type: String
+  EC2KeyName:
+    AllowedPattern: ^([a-zA-Z0-9 @.`~!#$%^&*()_+,\\-])*$
+    ConstraintDescription: Must be letters (upper or lower), numbers, and special characters.
+    Description: Name of an EC2 KeyPair. Your bastion & Web instances will launch with this KeyPair.
+    Type: AWS::EC2::KeyPair::KeyName
+  NumberOfSubnets:
+    AllowedValues:
+    - 2
+    - 3
+    - 4
+    - 5
+    - 6
+    Default: 3
+    Description: Number of subnets. This must match your selections in the list of subnets below.
+    Type: String 
+  PublicAlbTargetGroupArn:
+    Description: The public application load balancer target group arn.
+    Type: String
+  PublicAlbHostname:
+    Description: The hostname of the public ALB http form (e.g. http://abdc-12345-xyz.<region>.elb.amazonaws.com.cn)
+    Type: String
+  SslCertificate:
+    AllowedValues:
+      - True
+      - False
+    Default: True
+    Description: Is there an ACM SSL Certificate attached to the Public ALB?
+    Type:
+      String
+  Subnet:
+    Description: Select existing subnets. The number selected must match the number of subnets above. Subnets selected must be in separate AZs.
+    Type: List<AWS::EC2::Subnet::Id>
+  WebAsgMax:
+    AllowedPattern: ^((?!0$)[1-2]?[0-9]|30)$
+    ConstraintDescription: Must be a number between 1 and 30.
+    Default: 4
+    Description: Specifies the maximum number of EC2 instances in the Web Autoscaling Group.
+    Type: String
+  WebAsgMin:
+    AllowedPattern: ^([0-0]?[0-9]|10)$
+    ConstraintDescription: Must be a number between 0 and 10.
+    Default: 2
+    Description: Specifies the minimum number of EC2 instances in the Web Autoscaling Group.
+    Type: String
+  WebInstanceType:
+    AllowedValues:
+    - t2.medium 
+    - t2.large 
+    - t2.xlarge 
+    - t2.2xlarge 
+    - m4.large 
+    - m4.xlarge 
+    - m4.2xlarge 
+    - m4.4xlarge 
+    - m4.10xlarge 
+    - m4.16xlarge 
+    - m5.large 
+    - m5.xlarge 
+    - m5.2xlarge 
+    - m5.4xlarge 
+    - m5.12xlarge 
+    - m5.24xlarge 
+    - c4.large 
+    - c4.xlarge 
+    - c4.2xlarge 
+    - c4.4xlarge 
+    - c4.8xlarge 
+    - c5.large 
+    - c5.xlarge 
+    - c5.2xlarge 
+    - c5.4xlarge 
+    - c5.9xlarge 
+    - c5.18xlarge
+    - r4.large 
+    - r4.xlarge 
+    - r4.2xlarge 
+    - r4.4xlarge 
+    - r4.8xlarge 
+    - r4.16xlarge 
+    - r5.large
+    - r5.2xlarge
+    - r5.4xlarge
+    - r5.8xlarge
+    - r5.12xlarge
+    - r5.16xlarge
+    - r5.24xlarge
+    ConstraintDescription: Must be a valid Amazon EC2 instance type.
+    Default: t2.large
+    Description: The Amazon EC2 instance type for your web instances.
+    Type: String
+  WebSecurityGroup:
+    Description: Select the web security group.
+    Type: AWS::EC2::SecurityGroup::Id
+  DomainName:
+    AllowedPattern: ^$|(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$
+    Description: '[ Optional ] The main domain name of the Moodle site (e.g. moodle.example.edu). Leave empty to use the ALB DNS name for the Moodle site.'
+    Type: String
+  MoodleLocale:
+    Description: The main language used in the Moodle configuration wizard.
+    Type: String
+    Default: en
+  LatestAmiId :
+    Type : AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2
+
+
+Conditions:
+
+  NoSslCertificate:
+    !Equals [ False, !Ref SslCertificate ]
+  NumberOfSubnets1:
+    !Equals [ 1, !Ref NumberOfSubnets ]
+  NumberOfSubnets2:
+    !Equals [ 2, !Ref NumberOfSubnets ]
+  NumberOfSubnets3:
+    !Equals [ 3, !Ref NumberOfSubnets ]
+  NumberOfSubnets4:
+    !Equals [ 4, !Ref NumberOfSubnets ]
+  NumberOfSubnets5:
+    !Equals [ 5, !Ref NumberOfSubnets ]
+  NumberOfSubnets6:
+    !Equals [ 6, !Ref NumberOfSubnets ]
+  Subnet0: !Or
+    - !Condition NumberOfSubnets1
+    - !Condition NumberOfSubnets2
+    - !Condition NumberOfSubnets3
+    - !Condition NumberOfSubnets4
+    - !Condition NumberOfSubnets5
+    - !Condition NumberOfSubnets6
+  Subnet1: !Or
+    - !Condition NumberOfSubnets2
+    - !Condition NumberOfSubnets3
+    - !Condition NumberOfSubnets4
+    - !Condition NumberOfSubnets5
+    - !Condition NumberOfSubnets6
+  Subnet2: !Or
+    - !Condition NumberOfSubnets3
+    - !Condition NumberOfSubnets4
+    - !Condition NumberOfSubnets5
+    - !Condition NumberOfSubnets6
+  Subnet3: !Or
+    - !Condition NumberOfSubnets4
+    - !Condition NumberOfSubnets5
+    - !Condition NumberOfSubnets6
+  Subnet4: !Or
+    - !Condition NumberOfSubnets5
+    - !Condition NumberOfSubnets6
+  Subnet5: !Condition NumberOfSubnets6
+  NoDomainName:
+    !Equals [ '', !Ref DomainName ]
+    
+
+Resources:
+  WebInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: /
+      Roles:
+      - !Ref WebInstanceRole
+  WebInstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - ec2.amazonaws.com.cn
+          Action:
+          - sts:AssumeRole
+      Path: /
+      Policies:
+      - PolicyName: logs
+        PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+          - Effect: Allow
+            Action:
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            - logs:DescribeLogStreams
+            Resource:
+            - arn:aws-cn:logs:*:*:*
+      - PolicyName: CompleteLifecycleAction
+        PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+          - Effect: Allow
+            Action:
+            - autoscaling:CompleteLifecycleAction
+            - autoscaling:DescribeAutoScalingInstances
+            - autoscaling:DescribeLifecycleHooks
+            Resource:
+            - arn:aws-cn:autoscaling:*:*:*
+  Logs: 
+      Type: AWS::Logs::LogGroup
+      DeletionPolicy: Retain
+      Properties: 
+        RetentionInDays: 7
+  WebAutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      Cooldown: 60
+      HealthCheckGracePeriod: 300
+      HealthCheckType: ELB
+      LaunchConfigurationName: !Ref WebLaunchConfiguration
+      MaxSize: !Ref WebAsgMax
+      MinSize: !Ref WebAsgMin
+      Tags:
+        - Key: Name
+          Value: !Join [ '', [ 'Web ASG / ', !Ref 'AWS::StackName' ] ]
+          PropagateAtLaunch: true
+      TargetGroupARNs:
+        - !Ref PublicAlbTargetGroupArn
+      VPCZoneIdentifier:
+        !If
+          [ NumberOfSubnets1,
+          [ !Select [ 0, !Ref Subnet ] ],
+          !If
+            [ NumberOfSubnets2,
+            [ !Select [ 0, !Ref Subnet ], !Select [ 1, !Ref Subnet ] ],
+            !If
+              [ NumberOfSubnets3,
+              [ !Select [ 0, !Ref Subnet ], !Select [ 1, !Ref Subnet ], !Select [ 2, !Ref Subnet ] ],
+              !If
+                [ NumberOfSubnets4,
+                [ !Select [ 0, !Ref Subnet ], !Select [ 1, !Ref Subnet ], !Select [ 2, !Ref Subnet ], !Select [ 3, !Ref Subnet ] ],
+                !If
+                  [ NumberOfSubnets5,
+                  [ !Select [ 0, !Ref Subnet ], !Select [ 1, !Ref Subnet ], !Select [ 2, !Ref Subnet ], !Select [ 3, !Ref Subnet ], !Select [ 4, !Ref Subnet ] ],
+                  [ !Select [ 0, !Ref Subnet ], !Select [ 1, !Ref Subnet ], !Select [ 2, !Ref Subnet ], !Select [ 3, !Ref Subnet ], !Select [ 4, !Ref Subnet ], !Select [ 5, !Ref Subnet ] ]
+                  ]
+                ]
+              ]
+            ]
+          ]
+    CreationPolicy:
+      ResourceSignal:
+        Count: !Ref WebAsgMin
+        Timeout: PT15M
+        
+  ScaleUpPolicy:
+    Type: AWS::AutoScaling::ScalingPolicy
+    Properties:
+      AdjustmentType: ChangeInCapacity
+      AutoScalingGroupName:
+        Ref: WebAutoScalingGroup
+      Cooldown: 300
+      ScalingAdjustment: 1
+  CPUAlarmHigh:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      EvaluationPeriods: 3
+      Statistic: Average
+      Threshold: 75
+      AlarmDescription: Alarm if CPU too high
+      Period: 60
+      AlarmActions:
+      - Ref: ScaleUpPolicy
+      Namespace: AWS/EC2
+      Dimensions:
+      - Name: AutoScalingGroupName
+        Value: !Ref WebAutoScalingGroup
+      ComparisonOperator: GreaterThanThreshold
+      MetricName: CPUUtilization   
+  ScaleDownPolicy:
+    Type: AWS::AutoScaling::ScalingPolicy
+    Properties:
+      AdjustmentType: ChangeInCapacity
+      AutoScalingGroupName:
+        Ref: WebAutoScalingGroup
+      Cooldown: 300
+      ScalingAdjustment: -1
+  CPUAlarmLow:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      EvaluationPeriods: 3
+      Statistic: Average
+      Threshold: 25
+      AlarmDescription: Alarm if CPU too low
+      Period: 60
+      AlarmActions:
+      - Ref: ScaleDownPolicy
+      Namespace: AWS/EC2
+      Dimensions:
+      - Name: AutoScalingGroupName
+        Value: !Ref WebAutoScalingGroup
+      ComparisonOperator: LessThanThreshold
+      MetricName: CPUUtilization   
+     
+  WebLaunchConfiguration:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Metadata:
+      AWS::CloudFormation::Init:
+        configSets:
+          deploy_webserver:
+            # - install_logs
+            - install_efs_utils
+            - install_webserver
+            - install_moodle
+            # - install_cacheclient
+            - install_opcache
+            - start_webserver
+        install_webserver:
+          packages:
+            yum:
+              httpd: []
+              php: []
+              php-fpm: []
+              php-gd: []
+              php-json: []
+              php-mbstring: []
+              php-mysqlnd: []
+              php-xml: []
+              php-xmlrpc: []
+              php-pecl-zip: []
+              php-intl: []
+              php-soap: []
+              php-pecl-redis: []
+              php-cli: []
+          files:
+            /tmp/create_site_conf.sh:
+              content: !Sub |
+                #!/bin/bash -xe
+                if [ ! -f /etc/httpd/conf.d/moodle.conf ]; then                    
+                   touch /etc/httpd/conf.d/moodle.conf
+                   echo 'ServerName 127.0.0.1:80' >> /etc/httpd/conf.d/moodle.conf
+                   echo 'DocumentRoot /var/www/moodle/html' >> /etc/httpd/conf.d/moodle.conf
+                   echo '<Directory /var/www/moodle/html>' >> /etc/httpd/conf.d/moodle.conf
+                   echo '  Options Indexes FollowSymLinks' >> /etc/httpd/conf.d/moodle.conf
+                   echo '  AllowOverride All' >> /etc/httpd/conf.d/moodle.conf
+                   echo '  Require all granted' >> /etc/httpd/conf.d/moodle.conf
+                   echo '</Directory>' >> /etc/httpd/conf.d/moodle.conf
+                fi
+              mode: 000500
+              owner: root
+              group: root
+            /tmp/modify_php_setting.sh:
+              content: !Sub |
+                #!/bin/bash -xe
+                if [ -f /etc/php.ini ]; then
+                  sed -i 's/post_max_size = 8M/post_max_size = 128M/' /etc/php.ini
+                  sed -i 's/upload_max_filesize = 2M/upload_max_filesize = 64M/' /etc/php.ini
+                  sed -i 's/memory_limit = 128M/memory_limit = 256M/' /etc/php.ini
+                fi
+              mode: 000500
+              owner: root
+              group: root
+          commands:
+            create_site_conf:
+              command: ./create_site_conf.sh
+              cwd: /tmp
+              ignoreErrors: false
+            create_test_php_file:
+              command: "echo \"<?php phpinfo(); ?>\" > /var/www/html/phpinfo.php"
+              cwd: /var/www/html
+              ignoreErrors: false
+            modify_php_setting:
+              command: ./modify_php_setting.sh
+              cwd: /tmp
+              ignoreErrors: false
+        
+        install_logs:
+          packages:
+            yum:
+              awslogs: []
+          files:
+            /etc/awslogs/awslogs.conf:
+              content: !Sub |
+                [general]
+                state_file= /var/awslogs/state/agent-state
+                
+                [/var/log/cloud-init.log]
+                file = /var/log/cloud-init.log
+                log_group_name = ${Logs}
+                log_stream_name = {instance_id}/cloud-init.log
+                datetime_format = 
+                
+                [/var/log/cloud-init-output.log]
+                file = /var/log/cloud-init-output.log
+                log_group_name = ${Logs}
+                log_stream_name = {instance_id}/cloud-init-output.log
+                datetime_format = 
+                
+                [/var/log/cfn-init.log]
+                file = /var/log/cfn-init.log
+                log_group_name = ${Logs}
+                log_stream_name = {instance_id}/cfn-init.log
+                datetime_format = 
+                
+                [/var/log/cfn-hup.log]
+                file = /var/log/cfn-hup.log
+                log_group_name = ${Logs}
+                log_stream_name = {instance_id}/cfn-hup.log
+                datetime_format = 
+                
+                [/var/log/cfn-wire.log]
+                file = /var/log/cfn-wire.log
+                log_group_name = ${Logs}
+                log_stream_name = {instance_id}/cfn-wire.log
+                datetime_format = 
+                
+                [/var/log/httpd]
+                file = /var/log/httpd/*
+                log_group_name = ${Logs}
+                log_stream_name = {instance_id}/httpd
+                datetime_format = %d/%b/%Y:%H:%M:%S
+                
+              mode: '000444'
+              owner: root
+              group: root
+            /etc/awslogs/awscli.conf:
+              content: !Sub |
+                [plugins]
+                cwlogs = cwlogs
+                [default]
+                region = ${AWS::Region}
+              mode: '000444'
+              owner: root
+              group: root
+          commands:
+            01_create_state_directory:
+              command: mkdir -p /var/awslogs/state
+          services:
+            sysvinit:
+              awslogs:
+                enabled: 'true'
+                ensureRunning: 'true'
+                files: /etc/awslogs/awslogs.conf
+        
+        install_moodle:
+          files:
+            /tmp/config.php:
+              content: !Sub |
+                <?php
+                unset($CFG);
+                global $CFG;
+                $CFG = new stdClass();
+                $CFG->dbtype    = 'mysqli';
+                $CFG->dblibrary = 'native';
+                $CFG->dbhost = '${DatabaseClusterEndpointAddress}';
+                $CFG->dbname = '${DatabaseName}';
+                $CFG->dbuser = '${DatabaseMasterUsername}';
+                $CFG->dbpass = '${DatabaseMasterPassword}';
+                $CFG->prefix = 'mdl_';
+                $CFG->lang = '${MoodleLocale}';
+                $CFG->dboptions = array(
+                  'dbpersist' => false,
+                  'dbsocket' => false,
+                  'dbport' => '',
+                  'dbhandlesoptions' => false,
+                  'dbcollation' => 'utf8mb4_unicode_ci',
+                );
+                // Hostname definition //
+                $hostname = '${DomainName}';
+                if ($hostname == '') {
+                  $hostwithprotocol = '${PublicAlbHostname}';
+                }
+                else {
+                  $hostwithprotocol = 'https://' . strtolower($hostname);
+                }
+                $CFG->wwwroot = strtolower($hostwithprotocol);
+                $CFG->sslproxy = (substr($hostwithprotocol,0,5)=='https' ? true : false);
+                // Moodledata location //
+                $CFG->dataroot = '/var/www/moodle/data';
+                $CFG->tempdir = '/var/www/moodle/temp';
+                $CFG->cachedir = '/var/www/moodle/cache';
+                $CFG->localcachedir = '/var/www/moodle/local';
+                // Others //
+                $CFG->directorypermissions = 02777;
+                $CFG->admin = 'admin';
+                // Configure Session Cache
+                // $SessionEndpoint = '${ElastiCacheClusterEndpointAddress}';
+                // if ($SessionEndpoint != '') {
+                //   $CFG->dbsessions = false;
+                //   $CFG->session_handler_class = '\core\session\memcached';
+                //   $CFG->session_memcached_save_path = $SessionEndpoint;
+                //   $CFG->session_memcached_prefix = 'memc.sess.key.';
+                //   $CFG->session_memcached_acquire_lock_timeout = 120;
+                //   $CFG->session_memcached_lock_expire = 7200;
+                //   $CFG->session_memcached_lock_retry_sleep = 150;
+                // }
+                require_once(__DIR__ . '/lib/setup.php');
+                // END OF CONFIG //
+                ?>
+              mode: '000755'
+              owner: root
+              group: root
+            /tmp/install_moodle.sh:
+              content:  !Sub |
+                #!/bin/bash -xe
+                wget -O /tmp/moodle.tgz https://joeshi.s3.cn-northwest-1.amazonaws.com.cn/moodle-3.8.1.tgz 
+                tar -xvzf /tmp/moodle.tgz --strip-components=1 -C /var/www/moodle/html/
+                mv /tmp/config.php /var/www/moodle/html/config.php
+                chown -R root:apache /var/www/moodle/html
+                chown -R apache:apache /var/www/moodle/local
+                # Aurora does not support Compressed Parameter
+                sed -i 's/$rowformat = "ROW_FORMAT=Compressed"/$rowformat = "ROW_FORMAT=Dynamic"/' /var/www/moodle/html/lib/dml/mysqli_native_moodle_database.php
+              mode: 000500
+              owner: root
+              group: root
+          commands:
+            install_moodle:
+              command: ./install_moodle.sh
+              cwd: /tmp
+              ignoreErrors: false
+        
+        install_efs_utils:
+          packages:
+            yum:
+              git: []
+              rpm-build: []
+          files:
+            /tmp/install_efs_utils.sh:
+              content: !Sub |
+                #!/bin/bash -xe
+                git clone https://github.com/aws/efs-utils.git
+                cd efs-utils
+                make rpm
+                yum -y install build/amazon-efs-utils*rpm
+                mount -t efs ${ElasticFileSystem}:/data /var/www/moodle/data
+                mount -t efs ${ElasticFileSystem}:/cache /var/www/moodle/cache
+                mount -t efs ${ElasticFileSystem}:/temp /var/www/moodle/temp
+                echo '${ElasticFileSystem}:/data      /var/www/moodle/data    efs defaults,_netdev 0 0' >> /etc/fstab
+                echo '${ElasticFileSystem}:/cache     /var/www/moodle/cache    efs defaults,_netdev 0 0' >> /etc/fstab
+                echo '${ElasticFileSystem}:/temp      /var/www/moodle/temp    efs defaults,_netdev 0 0' >> /etc/fstab
+
+              mode: 000500
+              owner: root
+              group: root
+          commands:
+            install_efs_utils:
+              command: ./install_efs_utils.sh
+              cwd: /tmp
+              ignoreErrors: false
+        
+        install_cacheclient:
+          packages:
+            yum:
+              gcc-c++: []  
+          files:
+            /tmp/install_cacheclient.sh:
+              content:
+                !Sub |
+                  #!/bin/bash -xe
+                  
+                  #Install memcached and then remove it. Memcached is not actually needed. We install amazon-elasticache-cluster-client.so instead. However Moodle does not detect memcached is installed. Therefore, this tricks Moodle into thinking it is installed.
+                  sudo yum install -y php70-pecl-memcached
+                  sudo yum remove -y php70-pecl-memcached
+                  
+                  wget -P /tmp/ https://elasticache-downloads.s3.amazonaws.com/ClusterClient/PHP-7.0/latest-64bit
+                  tar -xf '/tmp/latest-64bit'
+                  cp '/tmp/artifact/amazon-elasticache-cluster-client.so' /usr/lib64/php/7.0/modules/
+                  if [ ! -f /etc/php-7.0.d/50-memcached.ini ]; then
+                      touch /etc/php-7.0.d/50-memcached.ini
+                  fi
+                  echo 'extension=/usr/lib64/php/7.0/modules/amazon-elasticache-cluster-client.so;' >> /etc/php-7.0.d/50-memcached.ini
+                  echo 'extension=igbinary.so;' >> /etc/php-7.0.d/50-memcached.ini
+                  
+                  #update Moodle source to use DYNAMIC_CLIENT_MODE so Moodle can detect changes to the elasticache cluster membership
+                  sed -i '/\$this->options\[Memcached::OPT_BUFFER_WRITES\] = \$bufferwrites;/a \ \ \ \ \ \ \ \ $this->options[Memcached::OPT_CLIENT_MODE] = Memcached::DYNAMIC_CLIENT_MODE;' /var/www/moodle/html/cache/stores/memcached/lib.php
+                  
+              mode: 000500
+              owner: root
+              group: root
+          commands:
+            install_cacheclient:
+              command: ./install_cacheclient.sh
+              cwd: /tmp
+              ignoreErrors: false
+        
+        install_opcache:
+          packages:
+            yum:
+              php-opcache: []
+          files:
+            /tmp/install_opcache.sh:
+              content:
+                !Sub |
+                  #!/bin/bash -xe
+                  # create hidden opcache directory locally & change owner to apache
+                  if [ ! -d /var/www/.opcache ]; then                    
+                      mkdir -p /var/www/.opcache
+                      chown -R apache:apache /var/www/.opcache
+                  fi
+                  #Ensure opcache is enabled and add settings recomended by moodle at https://docs.moodle.org/38/en/OPcache
+                  sed -i 's/;opcache.file_cache=.*/opcache.file_cache=\/var\/www\/.opcache/' /etc/php.d/10-opcache.ini
+                  sed -i 's/opcache.memory_consumption=.*/opcache.memory_consumption=128/' /etc/php.d/10-opcache.ini
+                  sed -i 's/opcache.max_accelerated_files=.*/opcache.max_accelerated_files=10000/' /etc/php.d/10-opcache.ini
+                  sed -i 's/;opcache.revalidate_freq=.*/opcache.revalidate_freq=60/' /etc/php.d/10-opcache.ini
+                  sed -i 's/;opcache.use_cwd=.*/opcache.use_cwd=1/' /etc/php.d/10-opcache.ini
+                  sed -i 's/;opcache.validate_timestamps=.*/opcache.validate_timestamps=1/' /etc/php.d/10-opcache.ini
+                  sed -i 's/;opcache.save_comments=.*/opcache.save_comments=1/' /etc/php.d/10-opcache.ini
+                  sed -i 's/;opcache.enable_file_override=.*/opcache.enable_file_override=0/' /etc/php.d/10-opcache.ini
+              mode: 000500
+              owner: root
+              group: root
+          commands:
+            install_opcache:
+              command: ./install_opcache.sh
+              cwd: /tmp
+              ignoreErrors: false
+        
+        start_webserver:
+          services:
+            sysvinit:
+              php-fpm:
+                enable: true
+                ensureRunning: true
+              httpd:
+                enabled: true
+                ensureRunning: true
+    Properties:
+      IamInstanceProfile: !Ref WebInstanceProfile
+      ImageId: !Ref LatestAmiId
+      InstanceMonitoring: true
+      InstanceType: !Ref WebInstanceType
+      KeyName: !Ref EC2KeyName
+      SecurityGroups:
+      - !Ref WebSecurityGroup
+      UserData:
+        "Fn::Base64":
+          !Sub |
+            #!/bin/bash -xe
+            yum update -y
+            amazon-linux-extras enable php7.2
+            
+            # Create directory structure
+            mkdir -p /var/www/moodle/html
+            mkdir -p /var/www/moodle/data
+            mkdir -p /var/www/moodle/cache
+            mkdir -p /var/www/moodle/temp
+            mkdir -p /var/www/moodle/local
+            
+            #Mount shared storage
+            # mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2 ${ElasticFileSystem}.efs.${AWS::Region}.amazonaws.com:/data /var/www/moodle/data
+            # mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2 ${ElasticFileSystem}.efs.${AWS::Region}.amazonaws.com:/cache /var/www/moodle/cache
+            # mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2 ${ElasticFileSystem}.efs.${AWS::Region}.amazonaws.com:/temp /var/www/moodle/temp
+            
+            #Run CloudFormation Init Scripts
+            /opt/aws/bin/cfn-init --configsets deploy_webserver --verbose --stack ${AWS::StackName} --resource WebLaunchConfiguration --region ${AWS::Region}
+            /opt/aws/bin/cfn-signal --exit-code $? --stack ${AWS::StackName} --resource WebAutoScalingGroup --region ${AWS::Region}
+
+
+Outputs:
+
+  Opcachestatus:
+    Value: !Join [ '', [ !Ref PublicAlbHostname, '/opcache-instanceid.php' ] ]

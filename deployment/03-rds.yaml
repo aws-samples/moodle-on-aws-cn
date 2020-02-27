@@ -1,0 +1,188 @@
+# VPC on AWS 
+#
+# author: aws-gcr-solution-center@
+
+AWSTemplateFormatVersion: 2010-09-09
+
+Description: Reference Architecture to host Moodle on AWS - Creates RDS Aurora MySQL database cluster
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    - Label:
+        default: Database Parameters
+      Parameters:
+        - DatabaseInstanceType
+        - DatabaseMasterUsername
+        - DatabaseMasterPassword
+        - DatabaseName
+        - DatabaseSecurityGroup
+        - NumberOfSubnets
+        - Subnet
+      ParameterLabel:
+        DatabaseInstanceType:
+          default: DB Instance Class 
+        DatabaseMasterUsername:
+          default: DB Master Username
+        DatabaseMasterPassword:
+          default: DB Master Password
+        DatabaseName:
+          default: DB Name
+        DatabaseSecurityGroup:
+          default: DB Security Group
+        NumberOfSubnets:
+          default: Number of subnets
+        Subnet:
+          default: Subnet IDs
+
+Parameters:
+  DatabaseInstanceType:
+    AllowedValues:
+      - db.r5.large
+      - db.r5.xlarge
+      - db.r5.2xlarge
+      - db.r5.4xlarge
+      - db.r5.12xlarge
+    ConstraintDescription: Must be a valid RDS instance class.
+    Default: db.r5.large
+    Description: The Amazon RDS database instance class.
+    Type: String
+  DatabaseMasterUsername:
+    AllowedPattern: ^([a-zA-Z0-9]*)$
+    Description: The Amazon RDS master username.
+    ConstraintDescription: Must contain only alphanumeric characters and be at least 8 characters.
+    MaxLength: 16
+    MinLength: 1
+    Type: String
+  DatabaseMasterPassword:
+    AllowedPattern: ^([a-z0-9A-Z`~!#$%^&*()_+,\\-])*$
+    ConstraintDescription: Must be letters (upper or lower), numbers, and these special characters '_'`~!#$%^&*()_+,-    
+    Description: The Amazon RDS master password.
+    MaxLength: 41
+    MinLength: 8
+    NoEcho: true
+    Type: String
+  DatabaseName:
+    AllowedPattern: ^([a-zA-Z0-9]*)$
+    Description: The Amazon RDS master database name.
+    Type: String
+  DatabaseSecurityGroup:
+    Description: Select the database security group.
+    Type: AWS::EC2::SecurityGroup::Id
+  NumberOfSubnets:
+    AllowedValues:
+      - 2
+      - 3
+    Default: 3
+    Type: String
+    Description: Number of subnets. This must match your selections in the list of subnets below.
+  Subnet:
+    Description: Select existing subnets.
+    Type: List<AWS::EC2::Subnet::Id>
+
+Conditions:
+  HasThreeAZs:
+    !Not [!Equals [2, !Ref NumberOfSubnets]] 
+
+Resources:
+  DatabaseSubnetGroup:
+    Type: "AWS::RDS::DBSubnetGroup"
+    Properties:
+      DBSubnetGroupDescription: RDS Database Subnet Group for Moodle
+      DBSubnetGroupName: moodle
+      SubnetIds:
+        !If
+        - HasThreeAZs
+        - [!Select [ 0, !Ref Subnet ], !Select [ 1, !Ref Subnet ], !Select [ 2, !Ref Subnet ]]
+        - [!Select [ 0, !Ref Subnet ], !Select [ 1, !Ref Subnet ]]
+      Tags:
+        - Key: Name
+          Value: !Join [ '', [ 'Moodle / ', !Ref 'AWS::StackName' ] ]
+  
+  DatabaseParameterGroup:
+    Type: "AWS::RDS::DBParameterGroup"
+    Properties:
+      Description: Moodle Database Parameter Group
+      Family: aurora5.6
+      Parameters:
+        sql_mode: 0
+      Tags:
+        - Key: Name
+          Value: moodle
+
+  DatabaseClusterParameterGroup:
+    Type: "AWS::RDS::DBClusterParameterGroup"
+    Properties:
+      Description: Moodle Database Cluster Parameter Group
+      Family: aurora5.6
+      Parameters:
+        character_set_database: utf8mb4
+        character_set_server: utf8mb4
+        collation_server: utf8mb4_unicode_ci
+        innodb_large_prefix: 1
+        innodb_file_format: Barracuda
+      Tags:
+        - Key: Name
+          Value: moodle
+
+  DatabaseCluster:
+    Type: "AWS::RDS::DBCluster"
+    Properties:
+      BackupRetentionPeriod: 7
+      DBClusterParameterGroupName: !Ref DatabaseClusterParameterGroup
+      DBClusterIdentifier: moodle
+      DBSubnetGroupName: !Ref DatabaseSubnetGroup
+      DatabaseName: !Ref DatabaseName
+      Engine: aurora
+      MasterUserPassword: !Ref DatabaseMasterPassword
+      MasterUsername: !Ref DatabaseMasterUsername
+      Port: 3306
+      StorageEncrypted: true
+      Tags:
+        - Key: Name
+          Value: !Join [ '', [ 'Moodle / ', !Ref 'AWS::StackName' ] ]
+      VpcSecurityGroupIds:
+        - !Ref DatabaseSecurityGroup
+  
+  DatabaseInstance0:
+    Type: "AWS::RDS::DBInstance"
+    DeletionPolicy: Delete
+    Properties:
+      AllowMajorVersionUpgrade: false
+      AutoMinorVersionUpgrade: true
+      DBClusterIdentifier: !Ref DatabaseCluster
+      DBInstanceClass: !Ref DatabaseInstanceType
+      DBParameterGroupName: !Ref DatabaseParameterGroup
+      DBSubnetGroupName: !Ref DatabaseSubnetGroup
+      Engine: aurora
+      Tags:
+        - Key: Name
+          Value: !Join [ '', [ 'Moodle / ', !Ref 'AWS::StackName' ] ]
+  
+  DatabaseInstance1:
+    Type: AWS::RDS::DBInstance
+    DeletionPolicy: Delete
+    Properties:
+      AllowMajorVersionUpgrade: false
+      AutoMinorVersionUpgrade: true
+      DBClusterIdentifier: !Ref DatabaseCluster
+      DBInstanceClass: !Ref DatabaseInstanceType
+      DBParameterGroupName: !Ref DatabaseParameterGroup
+      DBSubnetGroupName: !Ref DatabaseSubnetGroup
+      Engine: aurora
+      Tags:
+        - Key: Name
+          Value: !Join [ '', [ 'Moodle / ', !Ref 'AWS::StackName' ] ]
+      
+Outputs:
+  DatabaseCluster:
+    Description: Database Cluster ID
+    Value: !Ref DatabaseCluster
+  DatabaseName:
+    Description: Database Name
+    Value: !Ref DatabaseName
+  DatabaseClusterEndpointAddress:
+    Description: Database Cluster Endpoint
+    Value: !GetAtt DatabaseCluster.Endpoint.Address
+  DatabaseClusterReadEndpointAddress:
+    Description: Database Read-only Cluster Endpoint
+    Value: !GetAtt DatabaseCluster.ReadEndpoint.Address

@@ -1,0 +1,132 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+
+Description: Reference Architecture to host Moodle on AWS - Creates CloudFront distribution (if selected)
+
+Metadata:
+
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+    - Label:
+        default: AWS Parameters
+      Parameters:
+        - CloudFrontIamCertificateId
+        - DomainName
+        - PublicAlbDomainName
+    ParameterLabels:
+      CloudFrontIamCertificateId:
+        default: CloudFront Certificate ID in AWS IAM
+      PublicAlbDomainName:
+        default: Public ALB DNS Name
+      DomainName:
+        default: Domain name of the Moodle site
+
+Parameters:
+
+  CloudFrontIamCertificateId:
+    Description: '[ Optional ] The ID of SSL Certificate which has been uploaded to AWS IAM'
+    Type: String
+  PublicAlbDomainName:
+    Description: The public application load balancer dns name.
+    Type: String
+  DomainName:
+    AllowedPattern: ^$|(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$
+    Description: 'The main domain name of the Moodle site (e.g. moodle.example.edu).'
+    Type: String
+
+Conditions:
+
+  SslCertificate:
+    !Not [ !Equals [ '', !Ref CloudFrontIamCertificateId ] ]
+  NoSslCertificate:
+    !Equals [ '', !Ref CloudFrontIamCertificateId ]
+  DomainName:
+    !Not [ !Equals [ '', !Ref DomainName ] ]  
+  NoDomainName:
+    !Equals [ '', !Ref DomainName ]
+
+Resources:
+
+  CloudFrontDistributionNoSslCertificate:
+    Type: AWS::CloudFront::Distribution
+    Condition: NoSslCertificate
+    Properties:
+      DistributionConfig:
+        Aliases:
+        - !If [ DomainName, !Ref DomainName, !Ref 'AWS::NoValue' ]
+        Comment: !Ref 'AWS::StackName'
+        DefaultCacheBehavior:
+          AllowedMethods:
+          - DELETE
+          - GET
+          - HEAD
+          - OPTIONS
+          - PATCH
+          - POST
+          - PUT
+          DefaultTTL: 0
+          MaxTTL: 0
+          MinTTL: 0
+          ForwardedValues:
+            QueryString: true
+            Headers:
+            - '*'
+            Cookies:
+              Forward: all
+          TargetOriginId: elb
+          ViewerProtocolPolicy: allow-all
+          Compress: true
+        Enabled: true
+        Origins:
+        - DomainName: !Ref PublicAlbDomainName
+          Id: elb
+          CustomOriginConfig:
+            OriginProtocolPolicy: http-only
+        PriceClass: PriceClass_All
+  CloudFrontDistributionSslCertificate:
+    Type: AWS::CloudFront::Distribution
+    Condition: SslCertificate
+    Properties:
+      DistributionConfig:
+        Aliases:
+        - !If [ DomainName, !Ref DomainName, !Ref 'AWS::NoValue' ]
+        Comment: !Ref 'AWS::StackName'
+        DefaultCacheBehavior:
+          AllowedMethods:
+          - DELETE
+          - GET
+          - HEAD
+          - OPTIONS
+          - PATCH
+          - POST
+          - PUT
+          DefaultTTL: 0
+          MaxTTL: 0
+          MinTTL: 0
+          ForwardedValues:
+            QueryString: true
+            Headers:
+            - '*'
+            Cookies:
+              Forward: all
+          TargetOriginId: elb
+          ViewerProtocolPolicy: redirect-to-https
+          Compress: true
+        Enabled: true
+        Origins:
+        - DomainName: !Ref PublicAlbDomainName
+          Id: elb
+          CustomOriginConfig:
+            OriginProtocolPolicy: https-only
+        PriceClass: PriceClass_All
+        ViewerCertificate:
+          IamCertificateId: !Ref CloudFrontIamCertificateId
+          SslSupportMethod: sni-only
+          MinimumProtocolVersion: TLSv1
+
+Outputs:
+
+  DnsEndpoint:
+    Value: !If [ NoSslCertificate, !GetAtt CloudFrontDistributionNoSslCertificate.DomainName, !GetAtt CloudFrontDistributionSslCertificate.DomainName ]
+  DnsHostname:
+    Value: !If [ NoSslCertificate, !Join [ '', [ 'http://', !GetAtt CloudFrontDistributionNoSslCertificate.DomainName ] ], !Join [ '', [ 'https://', !GetAtt CloudFrontDistributionSslCertificate.DomainName ] ] ]
