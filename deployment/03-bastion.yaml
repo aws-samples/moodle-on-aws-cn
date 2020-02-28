@@ -1,0 +1,201 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+
+Description: Reference Architecture to host Moodle on AWS - Creates bastion (desired:0; min:0; max:1) Auto Scaling group
+
+Metadata:
+
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+    - Label:
+        default: AWS Parameters
+      Parameters:
+        - EC2KeyName
+        - BastionInstanceType
+        - BastionSecurityGroup
+        - NumberOfSubnets
+        - Subnet
+    ParameterLabels:
+      BastionSecurityGroup:
+        default: Bastion Security Group
+      BastionInstanceType:
+        default: Instance Type
+      EC2KeyName:
+        default: Existing Key Pair
+      NumberOfSubnets:
+        default: Number of subnets
+      Subnet:
+        default: Subnets
+
+Parameters:
+
+  BastionSecurityGroup:
+    Description: Select the bastion security group.
+    Type: AWS::EC2::SecurityGroup::Id
+  BastionInstanceType:
+    AllowedValues:
+    - t2.nano 
+    - t2.micro 
+    - t2.small 
+    - t2.medium 
+    - t2.large 
+    - t2.xlarge 
+    - t2.2xlarge 
+    - m4.large 
+    - m4.xlarge 
+    - m4.2xlarge 
+    - m4.4xlarge 
+    - m4.10xlarge 
+    - m4.16xlarge 
+    - m5.large 
+    - m5.xlarge 
+    - m5.2xlarge 
+    - m5.4xlarge 
+    - m5.12xlarge 
+    - m5.24xlarge 
+    ConstraintDescription: Must be a valid Amazon EC2 instance type.
+    Default: t2.nano
+    Description: Bastion EC2 instance type.
+    Type: String
+  EC2KeyName:
+    Description: Name of an EC2 KeyPair. Your bastion instances will launch with this KeyPair.
+    Type: AWS::EC2::KeyPair::KeyName
+  NumberOfSubnets:
+    AllowedValues:
+    - 2
+    - 3
+    - 4
+    - 5
+    - 6
+    Default: 3
+    Description: Number of subnets. This must match your selections in the list of subnets below.
+    Type: String 
+  Subnet:
+    Description: Select existing subnets. The number selected must match the number of subnets above. Subnets selected must be in separate AZs.
+    Type: List<AWS::EC2::Subnet::Id>
+  LatestAmiId :
+    Type : AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2
+    
+    
+Conditions:
+
+  NumberOfSubnets1:
+      !Equals [ 1, !Ref NumberOfSubnets ]
+  NumberOfSubnets2:
+      !Equals [ 2, !Ref NumberOfSubnets ]
+  NumberOfSubnets3:
+      !Equals [ 3, !Ref NumberOfSubnets ]
+  NumberOfSubnets4:
+      !Equals [ 4, !Ref NumberOfSubnets ]
+  NumberOfSubnets5:
+      !Equals [ 5, !Ref NumberOfSubnets ]
+  NumberOfSubnets6:
+      !Equals [ 6, !Ref NumberOfSubnets ]
+  Subnet0: !Or
+    - !Condition NumberOfSubnets1
+    - !Condition NumberOfSubnets2
+    - !Condition NumberOfSubnets3
+    - !Condition NumberOfSubnets4
+    - !Condition NumberOfSubnets5
+    - !Condition NumberOfSubnets6
+  Subnet1: !Or
+    - !Condition NumberOfSubnets2
+    - !Condition NumberOfSubnets3
+    - !Condition NumberOfSubnets4
+    - !Condition NumberOfSubnets5
+    - !Condition NumberOfSubnets6
+  Subnet2: !Or
+    - !Condition NumberOfSubnets3
+    - !Condition NumberOfSubnets4
+    - !Condition NumberOfSubnets5
+    - !Condition NumberOfSubnets6
+  Subnet3: !Or
+    - !Condition NumberOfSubnets4
+    - !Condition NumberOfSubnets5
+    - !Condition NumberOfSubnets6
+  Subnet4: !Or
+    - !Condition NumberOfSubnets5
+    - !Condition NumberOfSubnets6
+  Subnet5: !Condition NumberOfSubnets6
+
+
+Resources:
+
+  BastionAutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      Cooldown: 60
+      HealthCheckGracePeriod: 120
+      HealthCheckType: EC2
+      LaunchConfigurationName: !Ref BastionLaunchConfiguration
+      MaxSize: 1
+      MinSize: 0
+      Tags:
+        - Key: Name
+          Value: !Join [ '', [ 'Bastion / ', !Ref 'AWS::StackName' ] ]
+          PropagateAtLaunch: true
+      VPCZoneIdentifier:
+        !If
+          [ NumberOfSubnets1,
+          [ !Select [ 0, !Ref Subnet ] ],
+          !If
+            [ NumberOfSubnets2,
+            [ !Select [ 0, !Ref Subnet ], !Select [ 1, !Ref Subnet ] ],
+            !If
+              [ NumberOfSubnets3,
+              [ !Select [ 0, !Ref Subnet ], !Select [ 1, !Ref Subnet ], !Select [ 2, !Ref Subnet ] ],
+              !If
+                [ NumberOfSubnets4,
+                [ !Select [ 0, !Ref Subnet ], !Select [ 1, !Ref Subnet ], !Select [ 2, !Ref Subnet ], !Select [ 3, !Ref Subnet ] ],
+                !If
+                  [ NumberOfSubnets5,
+                  [ !Select [ 0, !Ref Subnet ], !Select [ 1, !Ref Subnet ], !Select [ 2, !Ref Subnet ], !Select [ 3, !Ref Subnet ], !Select [ 4, !Ref Subnet ] ],
+                  [ !Select [ 0, !Ref Subnet ], !Select [ 1, !Ref Subnet ], !Select [ 2, !Ref Subnet ], !Select [ 3, !Ref Subnet ], !Select [ 4, !Ref Subnet ], !Select [ 5, !Ref Subnet ] ]
+                  ]
+                ]
+              ]
+            ]
+          ]
+  BastionLaunchConfiguration:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      IamInstanceProfile: !Ref BastionInstanceProfile
+      ImageId: !Ref LatestAmiId
+      InstanceMonitoring: true
+      InstanceType: !Ref BastionInstanceType
+      KeyName: !Ref EC2KeyName
+      SecurityGroups:
+        - !Ref BastionSecurityGroup
+  BastionInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: '/'
+      Roles:
+      - !Ref BastionInstanceRole
+  BastionInstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - ec2.amazonaws.com.cn
+          Action:
+          - sts:AssumeRole
+      Path: '/'
+      Policies:
+      - PolicyName: logs
+        PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+          - Effect: Allow
+            Action:
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            - logs:DescribeLogStreams
+            Resource:
+            - arn:aws-cn:logs:*:*:*

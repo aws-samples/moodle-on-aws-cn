@@ -406,7 +406,7 @@ Resources:
       AWS::CloudFormation::Init:
         configSets:
           deploy_webserver:
-            # - install_logs
+            - install_logs
             - install_efs_utils
             - install_webserver
             - install_moodle
@@ -535,7 +535,7 @@ Resources:
               command: mkdir -p /var/awslogs/state
           services:
             sysvinit:
-              awslogs:
+              awslogsd:
                 enabled: 'true'
                 ensureRunning: 'true'
                 files: /etc/awslogs/awslogs.conf
@@ -582,16 +582,14 @@ Resources:
                 $CFG->directorypermissions = 02777;
                 $CFG->admin = 'admin';
                 // Configure Session Cache
-                // $SessionEndpoint = '${ElastiCacheClusterEndpointAddress}';
-                // if ($SessionEndpoint != '') {
-                //   $CFG->dbsessions = false;
-                //   $CFG->session_handler_class = '\core\session\memcached';
-                //   $CFG->session_memcached_save_path = $SessionEndpoint;
-                //   $CFG->session_memcached_prefix = 'memc.sess.key.';
-                //   $CFG->session_memcached_acquire_lock_timeout = 120;
-                //   $CFG->session_memcached_lock_expire = 7200;
-                //   $CFG->session_memcached_lock_retry_sleep = 150;
-                // }
+                $SessionEndpoint = '${ElastiCacheClusterEndpointAddress}';
+                if ($SessionEndpoint != '') {
+                   $CFG->session_handler_class = '\core\session\redis';
+                   $CFG->session_redis_host = $SessionEndpoint;
+                   $CFG->session_redis_prefix = 'redis.sess.';
+                   $CFG->session_redis_acquire_lock_timeout = 120;
+                   $CFG->session_redis_lock_expire = 7200;
+                }
                 require_once(__DIR__ . '/lib/setup.php');
                 // END OF CONFIG //
                 ?>
@@ -601,7 +599,7 @@ Resources:
             /tmp/install_moodle.sh:
               content:  !Sub |
                 #!/bin/bash -xe
-                wget -O /tmp/moodle.tgz https://joeshi.s3.cn-northwest-1.amazonaws.com.cn/moodle-3.8.1.tgz 
+                wget -O /tmp/moodle.tgz https://aws-solutions-assets.s3.cn-north-1.amazonaws.com.cn/moodle/moodle-3.8.1.tgz 
                 tar -xvzf /tmp/moodle.tgz --strip-components=1 -C /var/www/moodle/html/
                 mv /tmp/config.php /var/www/moodle/html/config.php
                 chown -R root:apache /var/www/moodle/html
