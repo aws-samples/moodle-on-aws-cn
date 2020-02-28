@@ -23,6 +23,8 @@ aws iam list-server-certificates
 
 如果您希望 Moodle Application Cache 和 Session Cache 使用同一组 Redis Cluster, 您可以选择只部署 Session Cache, 然后在 Moodle 站点内通过控制台进行配置。
 
+如果您选择部署了 Application Cache, 待 Moodle 站点部署完成后，登录 Moodle 控制台进行配置。
+
 1. 登录到AWS管理控制台，然后单击下面的按钮以启动无服务器图像处理程序AWS CloudFormation模板。
 
     [![Launch Stack](launch-stack.svg)](https://cn-northwest-1.console.amazonaws.cn/cloudformation/home?region=cn-northwest-1#/stacks/create/template?stackName=Moodle&templateURL=https:%2F%2Fjoeshi-cn-north-1.s3.cn-north-1.amazonaws.com.cn%2Fmoodle-on-aws%2Fdev%2F00-master.template)
@@ -83,12 +85,18 @@ aws iam list-server-certificates
 
     | 参数                                          | 默认值         | 描述                                                 |
     | --------------------------------------------- | -------------- | ---------------------------------------------------- |
-    | Use Session Cache                             | false          | Moodle 是否启用 Session Cache                        |
+    | Use Session Cache                             | true           | Moodle 是否启用 Session Cache                        |
     | Session Cache Node Type                       | cache.r5.large | ElastiCache 实例大小                                 |
     | Use Application Cache                         | false          | Moodle 是否启用 Application Cache                    |
     | Application Cache Node Type                   | cache.r5.large | ElastiCache 实例大小                                 |
     | Use CloudFront                                | true           | 是否创建 CloudFront                                  |
     | CloudFront Certificate ID uploaded in AWS IAM |                | CloudFront 使用的 SSL 证书ID, 必须提前上传到 AWS IAM |
+
+    **Bastion Tier**
+
+    | 参数                  | 默认值       | 描述            |
+    | --------------------- | ----------- | --------------  |
+    | Bastion Instance Type | t2.nano     | Bastion 实例大小 |
 
     **Web Tier**
 

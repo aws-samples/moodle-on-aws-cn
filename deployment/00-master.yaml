@@ -54,10 +54,10 @@ Metadata:
         - ApplicationCacheNodeType
         - UseCloudFrontBoolean
         - CloudFrontIamCertificateId
-    # - Label:
-    #     default: Bastion Tier
-    #   Parameters:
-    #     - BastionInstanceType
+    - Label:
+        default: Bastion Tier
+      Parameters:
+        - BastionInstanceType
     - Label:
         default: Web Tier
       Parameters:
@@ -71,8 +71,8 @@ Metadata:
       Parameters:
         - MoodleLocale
     ParameterLabels:
-      # BastionInstanceType:
-      #   default: Bastion Instance Type
+      BastionInstanceType:
+        default: Bastion Instance Type
       CloudFrontIamCertificateId:
         default: CloudFront Certificate ID uploaded in AWS IAM
       # DatabaseCmk:
@@ -152,52 +152,31 @@ Metadata:
 
 
 Parameters:
-  # BastionInstanceType:
-  #   AllowedValues:
-  #   - t2.medium 
-  #   - t2.large 
-  #   - t2.xlarge 
-  #   - t2.2xlarge 
-  #   - m4.large 
-  #   - m4.xlarge 
-  #   - m4.2xlarge 
-  #   - m4.4xlarge 
-  #   - m4.10xlarge 
-  #   - m4.16xlarge 
-  #   - m5.large 
-  #   - m5.xlarge 
-  #   - m5.2xlarge 
-  #   - m5.4xlarge 
-  #   - m5.12xlarge 
-  #   - m5.24xlarge 
-  #   - c4.large 
-  #   - c4.xlarge 
-  #   - c4.2xlarge 
-  #   - c4.4xlarge 
-  #   - c4.8xlarge 
-  #   - c5.large 
-  #   - c5.xlarge 
-  #   - c5.2xlarge 
-  #   - c5.4xlarge 
-  #   - c5.9xlarge 
-  #   - c5.18xlarge
-  #   - r4.large 
-  #   - r4.xlarge 
-  #   - r4.2xlarge 
-  #   - r4.4xlarge 
-  #   - r4.8xlarge 
-  #   - r4.16xlarge 
-  #   - r5.large
-  #   - r5.2xlarge
-  #   - r5.4xlarge
-  #   - r5.8xlarge
-  #   - r5.12xlarge
-  #   - r5.16xlarge
-  #   - r5.24xlarge
-  #   ConstraintDescription: Must be a valid Amazon EC2 instance type.
-  #   Default: m5.large
-  #   Description: Bastion EC2 instance type.
-  #   Type: String
+  BastionInstanceType:
+    AllowedValues:
+    - t2.nano 
+    - t2.micro 
+    - t2.small 
+    - t2.medium 
+    - t2.large 
+    - t2.xlarge 
+    - t2.2xlarge 
+    - m4.large 
+    - m4.xlarge 
+    - m4.2xlarge 
+    - m4.4xlarge 
+    - m4.10xlarge 
+    - m4.16xlarge 
+    - m5.large 
+    - m5.xlarge 
+    - m5.2xlarge 
+    - m5.4xlarge 
+    - m5.12xlarge 
+    - m5.24xlarge 
+    ConstraintDescription: Must be a valid Amazon EC2 instance type.
+    Default: t2.nano
+    Description: Bastion EC2 instance type.
+    Type: String
   PublicAlbCertificateArn:
     # AllowedPattern: ^$|(arn:aws:acm:)([a-z0-9/:-])*([a-z0-9])$
     Description: '[ Optional ] The AWS Certification Manager certificate ARN for the ALB certificate - this certificate should be created in the region you wish to run the ALB and must reference the domain name you use below.'
@@ -319,7 +298,7 @@ Parameters:
     AllowedValues:
       - true
       - false
-    Default: false
+    Default: true
     Description: Specifies whether an ElastiCache Cache Cluster should be created for sessions. Do not create a session cache during he inital deploy. You should update the stack to use session cache after completing the installation wizard.
     Type: String
   SessionCacheNodeType:
@@ -521,7 +500,7 @@ Parameters:
     Type: String
   UseCloudFrontBoolean:
     AllowedValues:
-      - true··
+      - true
       - false
     Default: true
     Description: Specifies whether a CloudFront Distribution should be created to serve the Moodle website content.
@@ -586,22 +565,22 @@ Resources:
         Vpc:
           !GetAtt [ vpc, Outputs.Vpc ]
       TemplateURL: https://s3.cn-north-1.amazonaws.com.cn/%%BUCKET_NAME%%/%%SOLUTION_NAME%%/%%VERSION%%/02-securitygroups.template
-  # bastion:
-  #   DependsOn: securitygroups
-  #   Type: AWS::CloudFormation::Stack
-  #   Properties:
-  #     Parameters:
-  #       BastionInstanceType:
-  #         !Ref BastionInstanceType
-  #       BastionSecurityGroup:
-  #         !GetAtt [ securitygroups, Outputs.BastionSecurityGroup ]
-  #       EC2KeyName:
-  #         !Ref EC2KeyName
-  #       NumberOfSubnets:
-  #         !Ref NumberOfAZs
-  #       Subnet:
-  #         !GetAtt [ vpc, Outputs.PublicSubnet ]
-  #     TemplateURL: https://s3.cn-north-1.amazonaws.com.cn/%%BUCKET_NAME%%/%%SOLUTION_NAME%%/%%VERSION%%/03-bastion.template
+  bastion:
+    DependsOn: securitygroups
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        BastionInstanceType:
+          !Ref BastionInstanceType
+        BastionSecurityGroup:
+          !GetAtt [ securitygroups, Outputs.BastionSecurityGroup ]
+        EC2KeyName:
+          !Ref EC2KeyName
+        NumberOfSubnets:
+          !Ref NumberOfAZs
+        Subnet:
+          !GetAtt [ vpc, Outputs.PublicSubnet ]
+      TemplateURL: https://s3.cn-north-1.amazonaws.com.cn/%%BUCKET_NAME%%/%%SOLUTION_NAME%%/%%VERSION%%/03-bastion.template
   publicalb:
     DependsOn: securitygroups
     Type: AWS::CloudFormation::Stack
