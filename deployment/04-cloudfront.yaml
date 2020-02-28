@@ -10,9 +10,10 @@ Metadata:
     - Label:
         default: AWS Parameters
       Parameters:
-        - CloudFrontIamCertificateId
         - DomainName
+        - CloudFrontIamCertificateId
         - PublicAlbDomainName
+        - PublicAlbCertificate 
     ParameterLabels:
       CloudFrontIamCertificateId:
         default: CloudFront Certificate ID in AWS IAM
@@ -26,13 +27,21 @@ Parameters:
   CloudFrontIamCertificateId:
     Description: '[ Optional ] The ID of SSL Certificate which has been uploaded to AWS IAM'
     Type: String
-  PublicAlbDomainName:
-    Description: The public application load balancer dns name.
-    Type: String
   DomainName:
     AllowedPattern: ^$|(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$
     Description: 'The main domain name of the Moodle site (e.g. moodle.example.edu).'
     Type: String
+  PublicAlbDomainName:
+    Description: The public application load balancer dns name.
+    Type: String
+  PublicAlbCertificate:
+    Description: If the public alb origin has SSL certificate
+    AllowedValues:
+      - True
+      - False
+    Default: False
+    Type: String
+
 
 Conditions:
 
@@ -44,6 +53,9 @@ Conditions:
     !Not [ !Equals [ '', !Ref DomainName ] ]  
   NoDomainName:
     !Equals [ '', !Ref DomainName ]
+  PublicAlbCertificate:
+    !Equals [ True, !Ref PublicAlbCertificate ]
+    
 
 Resources:
 
@@ -81,7 +93,7 @@ Resources:
         - DomainName: !Ref PublicAlbDomainName
           Id: elb
           CustomOriginConfig:
-            OriginProtocolPolicy: http-only
+            OriginProtocolPolicy: !If [ PublicAlbCertificate, 'https-only', 'http-only' ]
         PriceClass: PriceClass_All
   CloudFrontDistributionSslCertificate:
     Type: AWS::CloudFront::Distribution
@@ -117,7 +129,7 @@ Resources:
         - DomainName: !Ref PublicAlbDomainName
           Id: elb
           CustomOriginConfig:
-            OriginProtocolPolicy: https-only
+            OriginProtocolPolicy: !If [ PublicAlbCertificate, 'https-only', 'http-only' ]
         PriceClass: PriceClass_All
         ViewerCertificate:
           IamCertificateId: !Ref CloudFrontIamCertificateId

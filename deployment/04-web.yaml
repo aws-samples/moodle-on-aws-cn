@@ -38,6 +38,7 @@ Metadata:
         default: File System Parameters
       Parameters:
         - ElasticFileSystem
+    
     ParameterLabels:
       DatabaseClusterEndpointAddress:
         default: DB Cluster Endpoint Address
@@ -73,6 +74,8 @@ Metadata:
         default: Web Security Group
       DomainName:
         default: Site Domain
+      DomainHttps:
+        default: Domain Https
       MoodleLocale:
         default: Language Code
 
@@ -135,8 +138,7 @@ Parameters:
       - False
     Default: True
     Description: Is there an ACM SSL Certificate attached to the Public ALB?
-    Type:
-      String
+    Type: String
   Subnet:
     Description: Select existing subnets. The number selected must match the number of subnets above. Subnets selected must be in separate AZs.
     Type: List<AWS::EC2::Subnet::Id>
@@ -205,6 +207,14 @@ Parameters:
     AllowedPattern: ^$|(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$
     Description: '[ Optional ] The main domain name of the Moodle site (e.g. moodle.example.edu). Leave empty to use the ALB DNS name for the Moodle site.'
     Type: String
+    Default: ''
+  DomainHttps:
+    AllowedValues:
+      - True
+      - False
+    Default: False
+    Description: If the domain is protected by HTTPS?
+    Type: String
   MoodleLocale:
     Description: The main language used in the Moodle configuration wizard.
     Type: String
@@ -258,6 +268,7 @@ Conditions:
   Subnet5: !Condition NumberOfSubnets6
   NoDomainName:
     !Equals [ '', !Ref DomainName ]
+  
     
 
 Resources:
@@ -565,12 +576,14 @@ Resources:
                 );
                 // Hostname definition //
                 $hostname = '${DomainName}';
+                $domainHttps = '${DomainHttps}';
                 if ($hostname == '') {
                   $hostwithprotocol = '${PublicAlbHostname}';
-                }
-                else {
+                } else if ($domainHttps == 'true') {
                   $hostwithprotocol = 'https://' . strtolower($hostname);
-                }
+                } else {
+                  $hostwithprotocol = 'http://' . strtolower($hostname);
+                };
                 $CFG->wwwroot = strtolower($hostwithprotocol);
                 $CFG->sslproxy = (substr($hostwithprotocol,0,5)=='https' ? true : false);
                 // Moodledata location //

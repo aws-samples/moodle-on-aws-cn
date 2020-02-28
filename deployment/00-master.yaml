@@ -178,13 +178,15 @@ Parameters:
     Description: Bastion EC2 instance type.
     Type: String
   PublicAlbCertificateArn:
-    # AllowedPattern: ^$|(arn:aws:acm:)([a-z0-9/:-])*([a-z0-9])$
-    Description: '[ Optional ] The AWS Certification Manager certificate ARN for the ALB certificate - this certificate should be created in the region you wish to run the ALB and must reference the domain name you use below.'
+    AllowedPattern: ^$|(arn:aws-cn:iam)::([0-9]{12}):server-certificate/(.*)$
+    Description: '[ Optional ] The certificate ARN for the ALB certificate - this certificate should be created in the region you wish to run the ALB and must reference the Moodle domain name you use below.'
     Type: String
+    Default: ''
   CloudFrontIamCertificateId:
-    # AllowedPattern: ^$|(arn:aws:acm:)([a-z0-9/:-])*([a-z0-9])$
+    AllowedPattern: ^$|(arn:aws-cn:iam)::([0-9]{12}):server-certificate/(.*)$
     Description: '[ Optional ] The AWS Certification Manager certificate ARN for the CloudFront distribution certificate - this certificate should be created in the us-east-1 (N. Virginia) region and must reference the Moodle domain name you use below.'
     Type: String
+    Default: ''
   # DatabaseCmk:
   #   Description: AWS KMS Customer Master Key (CMK) to encrypt database cluster
   #   Type: String
@@ -415,6 +417,7 @@ Parameters:
     AllowedPattern: ^$|(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$
     Description: 'The main domain name of the Moodle site (e.g. moodle.example.edu).'
     Type: String
+    Default: ''
   MoodleLocale:
     Description: "The main language of the Moodle site, during initial configuration."
     Type: String
@@ -509,6 +512,7 @@ Parameters:
     Type: String
     AllowedPattern: ^$|(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$
     Description: Domain Name of Public Load Balancer, e.g. moodle.lb.example.net
+    Default: ''
 
 
 Conditions:
@@ -519,7 +523,13 @@ Conditions:
   DeployApplicationCache: 
     !Equals [ true, !Ref UseApplicationCacheBoolean ]
   DeployCloudFront: 
-    !Equals [ true, !Ref UseCloudFrontBoolean ]   
+    !Equals [ true, !Ref UseCloudFrontBoolean ]
+  PublicAlbCertificate:
+    !Not [!Equals [ '', !Ref PublicAlbCertificateArn ] ]
+  PublicAlbDomainName:
+    !Not [!Equals [ '', !Ref PublicAlbDomainName ] ]
+  DomainHttps:
+    !Not [ !Equals ['', !Ref CloudFrontIamCertificateId] ] 
 
 Resources:
   vpc:
@@ -715,6 +725,8 @@ Resources:
           !GetAtt [ vpc, Outputs.WebSubnet ]
         DomainName:
           !Ref DomainName
+        DomainHttps:
+          !If [ DomainHttps, True, False ]
         MoodleLocale:
           !Ref MoodleLocale
         ElastiCacheClusterEndpointAddress:
@@ -758,6 +770,8 @@ Resources:
           !GetAtt [ vpc, Outputs.WebSubnet ]
         DomainName:
           !Ref DomainName
+        DomainHttps:
+          !If [ DomainHttps, True, False ]
         MoodleLocale:
           !Ref MoodleLocale
         ElastiCacheClusterEndpointAddress:
@@ -771,10 +785,13 @@ Resources:
       Parameters:
         CloudFrontIamCertificateId:
           !Ref CloudFrontIamCertificateId
-        PublicAlbDomainName:
-          !Ref PublicAlbDomainName
+        PublicAlbDomainName: 
+          !If [PublicAlbDomainName, !Ref PublicAlbDomainName , !GetAtt [ publicalb, Outputs.PublicAlbDnsName ] ]
         DomainName:
           !Ref DomainName
+        PublicAlbCertificate: 
+          !If [PublicAlbCertificate, True, False]
+
       TemplateURL: https://s3.cn-north-1.amazonaws.com.cn/%%BUCKET_NAME%%/%%SOLUTION_NAME%%/%%VERSION%%/04-cloudfront.template
       
 Outputs:

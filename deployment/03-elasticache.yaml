@@ -71,23 +71,6 @@ Conditions:
 
 Resources:
 
-  # ElastiCacheCluster:
-  #   Type: AWS::ElastiCache::CacheCluster
-  #   Properties:
-  #     AZMode: cross-az
-  #     CacheNodeType: !Ref ElastiCacheNodeType
-  #     CacheSubnetGroupName: !Ref ElastiCacheSubnetGroup
-  #     CacheParameterGroupName: !Ref ElastiCacheParameterGroup
-  #     ClusterName: !Ref ElastiCacheClusterName
-  #     Engine: redis
-  #     EngineVersion: 5.0.6
-  #     NumCacheNodes: 1
-  #     Tags:
-  #       - Key: Name
-  #         Value: !Join [ '', [ 'Moodle / ', !Ref 'AWS::StackName' ] ]
-  #     VpcSecurityGroupIds:
-  #       - !Ref ElastiCacheSecurityGroup
-
   ElastiCacheReplicationGroup:
     Type: "AWS::ElastiCache::ReplicationGroup"
     Properties:
