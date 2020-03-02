@@ -104,7 +104,8 @@ Resources:
       Description: Moodle Database Parameter Group
       Family: aurora5.6
       Parameters:
-        sql_mode: 0
+        innodb_file_format: Barracuda
+        innodb_large_prefix: 1
       Tags:
         - Key: Name
           Value: moodle
@@ -118,8 +119,6 @@ Resources:
         character_set_database: utf8mb4
         character_set_server: utf8mb4
         collation_server: utf8mb4_unicode_ci
-        innodb_large_prefix: 1
-        innodb_file_format: Barracuda
       Tags:
         - Key: Name
           Value: moodle
