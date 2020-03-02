@@ -55,10 +55,6 @@ Metadata:
         - UseCloudFrontBoolean
         - CloudFrontIamCertificateId
     - Label:
-        default: Bastion Tier
-      Parameters:
-        - BastionInstanceType
-    - Label:
         default: Web Tier
       Parameters:
         - PublicAlbDomainName
@@ -71,8 +67,6 @@ Metadata:
       Parameters:
         - MoodleLocale
     ParameterLabels:
-      BastionInstanceType:
-        default: Bastion Instance Type
       CloudFrontIamCertificateId:
         default: CloudFront Certificate ID uploaded in AWS IAM
       # DatabaseCmk:
@@ -152,31 +146,6 @@ Metadata:
 
 
 Parameters:
-  BastionInstanceType:
-    AllowedValues:
-    - t2.nano 
-    - t2.micro 
-    - t2.small 
-    - t2.medium 
-    - t2.large 
-    - t2.xlarge 
-    - t2.2xlarge 
-    - m4.large 
-    - m4.xlarge 
-    - m4.2xlarge 
-    - m4.4xlarge 
-    - m4.10xlarge 
-    - m4.16xlarge 
-    - m5.large 
-    - m5.xlarge 
-    - m5.2xlarge 
-    - m5.4xlarge 
-    - m5.12xlarge 
-    - m5.24xlarge 
-    ConstraintDescription: Must be a valid Amazon EC2 instance type.
-    Default: t2.nano
-    Description: Bastion EC2 instance type.
-    Type: String
   PublicAlbCertificateArn:
     AllowedPattern: ^$|(arn:aws-cn:iam)::([0-9]{12}):server-certificate/(.*)$
     Description: '[ Optional ] The certificate ARN for the ALB certificate - this certificate should be created in the region you wish to run the ALB and must reference the Moodle domain name you use below.'
@@ -348,7 +317,7 @@ Parameters:
     Type: String
   EC2KeyName:
     ConstraintDescription: Must be letters (upper or lower), numbers, and special characters.
-    Description: Name of an EC2 KeyPair. Your bastion & Web instances will launch with this KeyPair.
+    Description: Name of an EC2 KeyPair. Your Web instances will launch with this KeyPair.
     Type: AWS::EC2::KeyPair::KeyName
   SshAccessCidr:
     AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/([0-9]|[1-2][0-9]|3[0-2]))$
@@ -575,22 +544,6 @@ Resources:
         Vpc:
           !GetAtt [ vpc, Outputs.Vpc ]
       TemplateURL: https://s3.cn-north-1.amazonaws.com.cn/%%BUCKET_NAME%%/%%SOLUTION_NAME%%/%%VERSION%%/02-securitygroups.template
-  bastion:
-    DependsOn: securitygroups
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      Parameters:
-        BastionInstanceType:
-          !Ref BastionInstanceType
-        BastionSecurityGroup:
-          !GetAtt [ securitygroups, Outputs.BastionSecurityGroup ]
-        EC2KeyName:
-          !Ref EC2KeyName
-        NumberOfSubnets:
-          !Ref NumberOfAZs
-        Subnet:
-          !GetAtt [ vpc, Outputs.PublicSubnet ]
-      TemplateURL: https://s3.cn-north-1.amazonaws.com.cn/%%BUCKET_NAME%%/%%SOLUTION_NAME%%/%%VERSION%%/03-bastion.template
   publicalb:
     DependsOn: securitygroups
     Type: AWS::CloudFormation::Stack
