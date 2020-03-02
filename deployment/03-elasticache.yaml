@@ -30,7 +30,7 @@ Metadata:
 Parameters:
 
   ElastiCacheClusterName:
-    AllowedPattern: ^([a-zA-Z0-9]*)$
+    AllowedPattern: ^[a-zA-Z]{1}[0-9a-zA-Z\-]{1,38}[^\-]{1}$
     Description: The ElastiCache cluster name.
     Type: String
   ElastiCacheNodeType:

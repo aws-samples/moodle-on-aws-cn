@@ -6,14 +6,32 @@ Moodle是一个学习平台，旨在为教育工作者、管理人员和学习�
 
 ![Architect](assets/architecture.png)
 
-## 前提条件
 
-AWS 中国区 CloudFront 需要配置 ICP 备案的域名，在生产环境中，我们建议您同时为 CloudFront 和 ALB(Application Load Balancer) 配置 SSL 证书来开启 HTTPS. 在部署本方案前，请先完成上传 SSL 证书到 AWS Identity and Access Management（IAM)。
+## 部署说明
 
-您需要在 CloudFormation 中使用到这两张 SSL 证书，您可以通过如下 AWS CLI 命令来查看 SSL 证书的 ID 及 ARN.
-```bash
-aws iam list-server-certificates
-```
+请认证阅读以下说明来了解架构。
+
+1. 准备 ICP 备案过的域名。AWS 中国区 CloudFront 需要配置 ICP 备案的域名才能进行访问，如果您选择启用 CloudFront，请提前准备好 ICP 备案过的域名。
+
+1. 确认弹性IP剩余额度。该 CloudFormation 堆栈会在您所选择的每一个 Availability Zone(AZ) 启动一个 NAT Gateway 来确保高可用架构。每一个 NAT Gateway 需要绑定一个弹性 IP. 默认情况下一个账号只能申请5个弹性IP。请在启动 CloudFormation 堆栈前确保您还有足够的弹性IP剩余额度。若弹性IP剩余额度不足，可通过工单来申请提升。
+
+1. 上传 SSL 证书至 AWS Identity and Access Management（IAM)。在生产环境中，我们建议您同时为 CloudFront 和 ALB(Application Load Balancer) 配置 SSL 证书来开启 HTTPS. 若您计划启用 SSL, 在部署本方案前，请先完成上传 SSL 证书到 AWS IAM。您可以通过如下 AWS CLI 命令来查看 SSL 证书的 ID 及 ARN。
+    ```bash
+    aws iam list-server-certificates
+    ```
+
+2. 启动 CloudFormation 堆栈时， **将最小和最大 Auto Scaling Group（ASG）的值都设置为1**。 如果您配置了会话缓存，则 Moodle 初始化安装中可能会遇到如下错误
+    ```
+    Installation must be finished from the original IP address, sorry.
+    ```
+
+3. 堆栈部署完成后，导航至网站以完成 Moodle 安装。 注意：在安装向导的最后一步（设置管理员密码之后），您可能会遇到504网关超时或CloudFront错误。 您只需刷新页面即可完成安装。
+
+4. 在 Moodle 站点配置中配置 Application Cache。
+
+5. 现在，您可以**更新**刚刚部署的堆栈, 根据需要设置 **最小和最大Auto Scaling Group** 的值。
+
+6. 如果您希望 Application Cache 和 Session Cache 共享一个 Redis 集群以节省成本，您可以在 CloudFormation 堆栈中选择不启用 Application Cache。在 Moodle 站点配置中将 Application Cache 和 Session Cache 配置到同一个 Cache Store.
 
 ## 步骤1: 启动 CloudFormation 堆栈
 
@@ -25,11 +43,11 @@ aws iam list-server-certificates
 
 如果您选择部署了 Application Cache, 待 Moodle 站点部署完成后，登录 Moodle 控制台进行配置。
 
-1. 登录到AWS管理控制台，然后单击下面的按钮以启动无服务器图像处理程序AWS CloudFormation模板。
+1. 登录到AWS管理控制台，然后单击下面的按钮以启动 AWS CloudFormation 模板。
 
-    [![Launch Stack](launch-stack.svg)](https://cn-northwest-1.console.amazonaws.cn/cloudformation/home?region=cn-northwest-1#/stacks/create/template?stackName=Moodle&templateURL=https:%2F%2Fjoeshi-cn-north-1.s3.cn-north-1.amazonaws.com.cn%2Fmoodle-on-aws%2Fdev%2F00-master.template)
+    [![Launch Stack](launch-stack.png)](https://cn-northwest-1.console.amazonaws.cn/cloudformation/home?region=cn-northwest-1#/stacks/create/template?stackName=Moodle&templateURL=https:%2F%2Fjoeshi-cn-north-1.s3.cn-north-1.amazonaws.com.cn%2Fmoodle-on-aws%2Fdev%2F00-master.template)
     
-1. 默认情况下，该模板在 AWS 宁夏区域启动。 要在其他AWS区域中启动无服务器图像处理程序，请使用控制台导航栏中的区域选择器。
+1. 默认情况下，该模板在 AWS 宁夏区域启动。 要在其他AWS区域中启动该解决方案，请使用控制台导航栏中的区域选择器。
 
 1. 在**创建堆栈**页面上，确认 **Amazon S3 URL** 文本框中显示正确的模板URL，然后选择**下一步**。
 
@@ -89,7 +107,7 @@ aws iam list-server-certificates
     | Session Cache Node Type                       | cache.r5.large | ElastiCache 实例大小                                 |
     | Use Application Cache                         | false          | Moodle 是否启用 Application Cache                    |
     | Application Cache Node Type                   | cache.r5.large | ElastiCache 实例大小                                 |
-    | Use CloudFront                                | true           | 是否创建 CloudFront                                  |
+    | Use CloudFront                                | false           | 是否创建 CloudFront                                  |
     | CloudFront Certificate ID uploaded in AWS IAM |                | CloudFront 使用的 SSL 证书ID, 必须提前上传到 AWS IAM |
 
     **Web Tier**
@@ -99,8 +117,8 @@ aws iam list-server-certificates
     | Public ALB Domain Name |          | ALB 自定义域名                                |
     | ALB Certificate ARN    |          | ALB 使用的 SSL 证书ID, 必须提前上传到 AWS IAM |
     | Web Tier Instance Type | c5.large | Web 实例大小                                  |
-    | Web ASG Max            | 10       | Web Auto Scaling Group 最大值                 |
-    | Web ASG Min            | 2        | Web Auto Scaling Group 最小值                 |
+    | Web ASG Max            | 1        | Web Auto Scaling Group 最大值                 |
+    | Web ASG Min            | 1        | Web Auto Scaling Group 最小值                 |
 
     **Moodle**
 

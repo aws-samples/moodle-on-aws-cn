@@ -88,7 +88,6 @@ Resources:
     Type: "AWS::RDS::DBSubnetGroup"
     Properties:
       DBSubnetGroupDescription: RDS Database Subnet Group for Moodle
-      DBSubnetGroupName: moodle
       SubnetIds:
         !If
         - HasThreeAZs
@@ -108,7 +107,7 @@ Resources:
         innodb_large_prefix: 1
       Tags:
         - Key: Name
-          Value: moodle
+          Value: !Join [ '', [ 'Moodle / ', !Ref 'AWS::StackName' ] ]
 
   DatabaseClusterParameterGroup:
     Type: "AWS::RDS::DBClusterParameterGroup"
@@ -128,7 +127,7 @@ Resources:
     Properties:
       BackupRetentionPeriod: 7
       DBClusterParameterGroupName: !Ref DatabaseClusterParameterGroup
-      DBClusterIdentifier: moodle
+      DBClusterIdentifier: !Join [ '-', [!Ref 'AWS::StackName', 'db' ] ]
       DBSubnetGroupName: !Ref DatabaseSubnetGroup
       DatabaseName: !Ref DatabaseName
       Engine: aurora
