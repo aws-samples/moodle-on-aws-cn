@@ -41,7 +41,7 @@ aws iam list-server-certificates
 
     | 参数            | 默认值    | 描述                                                  |
     | --------------- | --------- | ----------------------------------------------------- |
-    | EC2 Key Pair    |           | EC2 Key Pair 名称，用于登录 Bastion 实例以及 Web 实例 |
+    | EC2 Key Pair    |           | EC2 Key Pair 名称，用于登录 Web 实例 |
     | SSH Access From | 0.0.0.0/0 | 允许登录 Bastion 的 IP 地址段 (CIDR格式)              |
     | Site Domain     |           | Moodle 站点域名                                       |
 
@@ -92,12 +92,6 @@ aws iam list-server-certificates
     | Use CloudFront                                | true           | 是否创建 CloudFront                                  |
     | CloudFront Certificate ID uploaded in AWS IAM |                | CloudFront 使用的 SSL 证书ID, 必须提前上传到 AWS IAM |
 
-    **Bastion Tier**
-
-    | 参数                  | 默认值       | 描述            |
-    | --------------------- | ----------- | --------------  |
-    | Bastion Instance Type | t2.nano     | Bastion 实例大小 |
-
     **Web Tier**
 
     | 参数                   | 默认值   | 描述                                          |
@@ -114,13 +108,13 @@ aws iam list-server-certificates
     | ------------- | ------ | ------------------- |
     | Language Code | en     | Moodle 站点默认语言 |
 
-1. 选择**下一步**。
+2. 选择**下一步**。
 
-1. 在**配置堆栈选项**页面上，选择“下一步”。
+3. 在**配置堆栈选项**页面上，选择“下一步”。
 
-1. 在**审核**页面上，查看并确认设置。 确保选中确认模板将创建 AWS Identity and Access Management（IAM）资源的框。
+4. 在**审核**页面上，查看并确认设置。 确保选中确认模板将创建 AWS Identity and Access Management（IAM）资源的框。
 
-1. 选择**创建堆栈**以部署堆栈。
+5. 选择**创建堆栈**以部署堆栈。
 
 您可以在AWS CloudFormation控制台的**状态**列中查看堆栈的状态。 您应该在大约30分钟内看到状态为CREATE_COMPLETE。
 
