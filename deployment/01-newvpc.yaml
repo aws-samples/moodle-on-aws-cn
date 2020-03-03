@@ -739,6 +739,11 @@ Resources:
       RouteTableId: !Ref PublicRouteTable            
 
   PublicSubnet0:
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W33
+            reason: "This is a public subnet"
     Condition: AZ0
     Type: AWS::EC2::Subnet
     Properties:
@@ -752,6 +757,11 @@ Resources:
           Value: Public
       VpcId: !Ref Vpc
   PublicSubnet1:
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W33
+            reason: "This is a public subnet"
     Condition: AZ1
     Type: AWS::EC2::Subnet
     Properties:
@@ -765,6 +775,11 @@ Resources:
           Value: Public
       VpcId: !Ref Vpc
   PublicSubnet2:
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W33
+            reason: "This is a public subnet"
     Condition: AZ2
     Type: AWS::EC2::Subnet
     Properties:
@@ -778,6 +793,11 @@ Resources:
           Value: Public
       VpcId: !Ref Vpc
   PublicSubnet3:
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W33
+            reason: "This is a public subnet"
     Condition: AZ3
     Type: AWS::EC2::Subnet
     Properties:
@@ -791,6 +811,11 @@ Resources:
           Value: Public
       VpcId: !Ref Vpc
   PublicSubnet4:
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W33
+            reason: "This is a public subnet"
     Condition: AZ4
     Type: AWS::EC2::Subnet
     Properties:
@@ -804,6 +829,11 @@ Resources:
           Value: Public
       VpcId: !Ref Vpc
   PublicSubnet5:
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W33
+            reason: "This is a public subnet"
     Condition: AZ5
     Type: AWS::EC2::Subnet
     Properties:
@@ -859,7 +889,7 @@ Resources:
                   - logs:DescribeLogStreams
                   - logs:PutLogEvents
                 Effect: Allow
-                Resource: '*'
+                Resource: 'arn:aws-cn:logs:*:*:*'
 
 Outputs:
   

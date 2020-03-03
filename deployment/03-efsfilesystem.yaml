@@ -260,7 +260,7 @@ Resources:
               - autoscaling:DescribeAutoScalingInstances
               - autoscaling:DescribePolicies
               - autoscaling:UpdateAutoScalingGroup
-            Resource: '*'
+            Resource: 'arn:aws-cn:autoscaling:*:*:*:*'
   AutoScalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
     Properties:
@@ -463,6 +463,11 @@ Resources:
             ]
           ]
   EfsSizeMonitorFunction:
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W58
+            reason: Attached AWS-managed Policies
     Type: AWS::Lambda::Function
     Properties: 
       Code:
@@ -535,8 +540,8 @@ Resources:
           - sts:AssumeRole
       Path: /
       ManagedPolicyArns:
-      - arn:aws:iam::aws:policy/CloudWatchFullAccess
-      - arn:aws:iam::aws:policy/AmazonElasticFileSystemReadOnlyAccess
+        - arn:aws-cn:iam::aws:policy/CloudWatchFullAccess
+        - arn:aws-cn:iam::aws:policy/AmazonElasticFileSystemReadOnlyAccess
   EfsLambdaPermission: 
     Type: AWS::Lambda::Permission
     Properties: 

@@ -102,6 +102,11 @@ Conditions:
 Resources:
   
   PublicAlbListenerNoSslCertificate:
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W56
+            reason: This is NOT HTTPS listener
     Type : AWS::ElasticLoadBalancingV2::Listener
     Properties:
       DefaultActions:
@@ -111,6 +116,11 @@ Resources:
       Port: 80
       Protocol: HTTP
   PublicAlbListenerSslCertificate:
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W55
+            reason: use default SslPolicy
     Condition: SslCertificate
     Type : AWS::ElasticLoadBalancingV2::Listener
     Properties:
@@ -122,7 +132,12 @@ Resources:
       LoadBalancerArn: !Ref PublicApplicationLoadBalancer
       Port: 443
       Protocol: HTTPS
-  PublicApplicationLoadBalancer: 
+  PublicApplicationLoadBalancer:
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W52
+            reason: No need logging
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
       Scheme: internet-facing

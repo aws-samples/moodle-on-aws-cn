@@ -60,6 +60,11 @@ Conditions:
 Resources:
 
   CloudFrontDistributionNoSslCertificate:
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W10
+            reason: Will to included in feature version
     Type: AWS::CloudFront::Distribution
     Condition: NoSslCertificate
     Properties:
@@ -96,6 +101,11 @@ Resources:
             OriginProtocolPolicy: !If [ PublicAlbCertificate, 'https-only', 'http-only' ]
         PriceClass: PriceClass_All
   CloudFrontDistributionSslCertificate:
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W10
+            reason: Will to included in feature version
     Type: AWS::CloudFront::Distribution
     Condition: SslCertificate
     Properties:

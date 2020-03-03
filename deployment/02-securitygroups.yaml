@@ -30,6 +30,13 @@ Parameters:
 Resources:
 
   BastionSecurityGroup:
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W40
+            reason: Default egress rule
+          - id: W5
+            reason: Default egress rule
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: Security group for Bastion instances
@@ -38,10 +45,24 @@ Resources:
           FromPort: 22
           ToPort: 22
           CidrIp: !Ref SshAccessCidr
+          Description: SSH origin IP range
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          FromPort: -1
+          ToPort: -1
+          CidrIp: 0.0.0.0/0
+          Description: To all
       VpcId:
         !Ref Vpc
 
   DatabaseSecurityGroup:
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W40
+            reason: Default egress rule
+          - id: W5
+            reason: Default egress rule
     Type: "AWS::EC2::SecurityGroup"
     Properties:
       GroupDescription: Security group for Amazon RDS cluster
@@ -50,9 +71,23 @@ Resources:
           FromPort: 3306
           ToPort: 3306
           SourceSecurityGroupId: !Ref WebSecurityGroup
+          Description: From Web Security Group
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          FromPort: -1
+          ToPort: -1
+          CidrIp: 0.0.0.0/0
+          Description: to all
       VpcId: !Ref Vpc
  
   ElastiCacheSecurityGroup:
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W40
+            reason: Default egress rule
+          - id: W5
+            reason: Default egress rule
     Type: "AWS::EC2::SecurityGroup"
     Properties:
       GroupDescription: Security group for ElastiCache cache cluster
@@ -61,9 +96,23 @@ Resources:
           FromPort: 6379
           ToPort: 6379
           SourceSecurityGroupId: !Ref WebSecurityGroup
+          Description: From Web Security Group
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          FromPort: -1
+          ToPort: -1
+          CidrIp: 0.0.0.0/0
+          Description: to all
       VpcId: !Ref Vpc
   
   EfsSecurityGroup:
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W40
+            reason: Default egress rule
+          - id: W5
+            reason: Default egress rule
     Type: "AWS::EC2::SecurityGroup"
     Properties:
       GroupDescription: Security group for EFS cluster
@@ -73,10 +122,18 @@ Resources:
           FromPort: 2049
           ToPort: 2049
           SourceSecurityGroupId: !Ref WebSecurityGroup
+          Description: From Web Security Group
         - IpProtocol: tcp
           FromPort: 22
           ToPort: 22
-          SourceSecurityGroupId: !Ref BastionSecurityGroup        
+          SourceSecurityGroupId: !Ref BastionSecurityGroup
+          Description: From Bastion
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          FromPort: -1
+          ToPort: -1
+          CidrIp: 0.0.0.0/0
+          Description: to all   
   EfsSecurityGroupIngress:
     Type: "AWS::EC2::SecurityGroupIngress"
     Properties:
@@ -85,8 +142,20 @@ Resources:
       ToPort: 2049
       SourceSecurityGroupId: !GetAtt EfsSecurityGroup.GroupId
       GroupId: !GetAtt EfsSecurityGroup.GroupId
+      Description: From self
 
   PublicAlbSecurityGroup:
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W9
+            reason: "This is a security group for public facing ALB"
+          - id: W2
+            reason: "This is a security group for public facing ALB"
+          - id: W40
+            reason: "Default egress rule"
+          - id: W5
+            reason: "Default egress rule"
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: Security group for ALB
@@ -95,14 +164,29 @@ Resources:
           FromPort: 443
           ToPort: 443
           CidrIp: 0.0.0.0/0
+          Description: From public
         - IpProtocol: tcp
           FromPort: 80
           ToPort: 80
           CidrIp: 0.0.0.0/0
+          Description: From public
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          FromPort: -1
+          ToPort: -1
+          CidrIp: 0.0.0.0/0
+          Description: to all
       VpcId:
         !Ref Vpc   
 
   WebSecurityGroup:
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W40
+            reason: Default egress rule
+          - id: W5
+            reason: Default egress rule
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: Security group for web instances
@@ -111,14 +195,23 @@ Resources:
           FromPort: 80
           ToPort: 80
           SourceSecurityGroupId: !Ref PublicAlbSecurityGroup
+          Description: From public ALB
         - IpProtocol: tcp
           FromPort: 443
           ToPort: 443
           SourceSecurityGroupId: !Ref PublicAlbSecurityGroup
+          Description: From public ALB
         - IpProtocol: tcp
           FromPort: 22
           ToPort: 22
           SourceSecurityGroupId: !Ref BastionSecurityGroup
+          Description: From Bastion
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          FromPort: -1
+          ToPort: -1
+          CidrIp: 0.0.0.0/0
+          Description: To all
       VpcId:
         !Ref Vpc
 

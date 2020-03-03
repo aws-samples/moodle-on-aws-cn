@@ -152,6 +152,7 @@ Resources:
       DBParameterGroupName: !Ref DatabaseParameterGroup
       DBSubnetGroupName: !Ref DatabaseSubnetGroup
       Engine: aurora
+      PubliclyAccessible: false
       Tags:
         - Key: Name
           Value: !Join [ '', [ 'Moodle / ', !Ref 'AWS::StackName' ] ]
@@ -167,6 +168,7 @@ Resources:
       DBParameterGroupName: !Ref DatabaseParameterGroup
       DBSubnetGroupName: !Ref DatabaseSubnetGroup
       Engine: aurora
+      PubliclyAccessible: false
       Tags:
         - Key: Name
           Value: !Join [ '', [ 'Moodle / ', !Ref 'AWS::StackName' ] ]

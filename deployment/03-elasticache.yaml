@@ -72,6 +72,11 @@ Conditions:
 Resources:
 
   ElastiCacheReplicationGroup:
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: F33
+            reason: Use Redis without encryption in transit
     Type: "AWS::ElastiCache::ReplicationGroup"
     Properties:
       CacheNodeType: !Ref ElastiCacheNodeType
@@ -85,6 +90,7 @@ Resources:
       SecurityGroupIds:
         - !Ref ElastiCacheSecurityGroup
       SnapshotRetentionLimit: 4
+      AtRestEncryptionEnabled: true
       Tags:
         - Key: Name
           Value: !Join [ '', [ 'Moodle / ', !Ref 'AWS::StackName' ] ]
