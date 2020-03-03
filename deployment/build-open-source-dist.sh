@@ -35,8 +35,6 @@ mkdir -p $dist_template_dir
 echo "------------------------------------------------------------------------------"
 echo "[Packing] Templates"
 echo "------------------------------------------------------------------------------"
-echo "cp $source_template_dir/*.template $dist_template_dir/"
-cp $source_template_dir/*.template $dist_template_dir/
 echo "copy yaml templates and rename"
 cp $source_template_dir/*.yaml $dist_template_dir/
 cd $dist_template_dir
