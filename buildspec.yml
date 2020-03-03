@@ -8,7 +8,7 @@ phases:
       - echo "nothing to do in install"
   pre_build:
     commands:
-      - ehoc "no dependencies, no unit test "
+      - echo "no dependencies, no unit test "
   build:
     commands:
       - echo "Starting build `date` in `pwd`"
