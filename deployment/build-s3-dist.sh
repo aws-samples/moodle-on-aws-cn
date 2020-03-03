@@ -52,8 +52,10 @@ for f in *.yaml; do
     mv -- "$f" "${f%.yaml}.template"
 done
 
-cd ..
+echo "add an empty file to regional-s3-assets to avoid pipeline error"
+touch $build_dist_dir/NOUSE
 
+cd ..
 if [[ "$OSTYPE" == "darwin"* ]]; then
     echo "Updating code source bucket in template with $1"
     replace="s/%%BUCKET_NAME%%/$1/g"

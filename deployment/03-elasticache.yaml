@@ -77,6 +77,8 @@ Resources:
         rules_to_suppress:
           - id: F33
             reason: Use Redis without encryption in transit
+          - id: F25
+            reason: Not supported in AWS China regions
     Type: "AWS::ElastiCache::ReplicationGroup"
     Properties:
       CacheNodeType: !Ref ElastiCacheNodeType
@@ -90,7 +92,7 @@ Resources:
       SecurityGroupIds:
         - !Ref ElastiCacheSecurityGroup
       SnapshotRetentionLimit: 4
-      AtRestEncryptionEnabled: true
+      AtRestEncryptionEnabled: false
       Tags:
         - Key: Name
           Value: !Join [ '', [ 'Moodle / ', !Ref 'AWS::StackName' ] ]
