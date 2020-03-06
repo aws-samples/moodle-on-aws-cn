@@ -45,7 +45,7 @@ Moodle是一个学习平台，旨在为教育工作者、管理人员和学习�
 
 1. 登录到AWS管理控制台，然后单击下面的按钮以启动 AWS CloudFormation 模板。
 
-    [![Launch Stack](launch-stack.png)](https://cn-northwest-1.console.amazonaws.cn/cloudformation/home?region=cn-northwest-1#/stacks/create/template?stackName=Moodle&templateURL=https:%2F%2Fjoeshi-cn-north-1.s3.cn-north-1.amazonaws.com.cn%2Fmoodle-on-aws%2Fdev%2F00-master.template)
+    [![Launch Stack](launch-stack.png)](https://cn-northwest-1.console.amazonaws.cn/cloudformation/home?region=cn-northwest-1#/stacks/create/template?stackName=Moodle&templateURL=https:%2F%2Faws-solutions-reference.s3.cn-north-1.amazonaws.com.cn%2Fmoodle-on-aws%2Fv1.0%2F00-master.template)
     
 1. 默认情况下，该模板在 AWS 宁夏区域启动。 要在其他AWS区域中启动该解决方案，请使用控制台导航栏中的区域选择器。
 
