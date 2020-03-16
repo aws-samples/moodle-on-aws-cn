@@ -85,8 +85,8 @@ Moodle是一个学习平台，旨在为教育工作者、管理人员和学习�
 
     | 参数                 | 默认值         | 描述                                     |
     | -------------------- | -------------- | ---------------------------------------- |
-    | EFS Performance Mode | generalPurpose | Performance mode of the file system      |
-    | Encrpyted EFS?       | true           | 是否加密 EFS                             |
+    | EFS Performance Mode | generalPurpose | 文件系统的性能模式                          |
+    | Encrpyted EFS?       | false           | 是否加密 EFS                             |
     | Add dummy data (GiB) | 0              | 在 EFS 中增加 dummy data                 |
     | Instance Type        | r4.large       | 在 EFS 中增加 dummy data 的 EC2 实例大小 |
 
