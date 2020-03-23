@@ -15,10 +15,7 @@ Moodle是一个学习平台，旨在为教育工作者、管理人员和学习�
 
 1. 确认弹性IP剩余额度。该 CloudFormation 堆栈会在您所选择的每一个 Availability Zone(AZ) 启动一个 NAT Gateway 来确保高可用架构。每一个 NAT Gateway 需要绑定一个弹性 IP. 默认情况下一个账号只能申请5个弹性IP。请在启动 CloudFormation 堆栈前确保您还有足够的弹性IP剩余额度。若弹性IP剩余额度不足，可通过工单来申请提升。
 
-1. 上传 SSL 证书至 AWS Identity and Access Management（IAM)。在生产环境中，我们建议您同时为 CloudFront 和 ALB(Application Load Balancer) 配置 SSL 证书来开启 HTTPS. 若您计划启用 SSL, 在部署本方案前，请先完成上传 SSL 证书到 AWS IAM。您可以通过如下 AWS CLI 命令来查看 SSL 证书的 ID 及 ARN。
-    ```bash
-    aws iam list-server-certificates
-    ```
+1. 提前在 ACM (Amazon Certificate Manager) 中创建 SSL 证书。在生产环境中，我们建议您同时为 CloudFront 和 ALB(Application Load Balancer) 配置 SSL 证书来开启 HTTPS. 若您计划启用 SSL, 在部署本方案前，请先完成在 ACM 中创建 SSL 证书。
 
 2. 启动 CloudFormation 堆栈时， **将最小和最大 Auto Scaling Group（ASG）的值都设置为1**。 如果您配置了会话缓存，则 Moodle 初始化安装中可能会遇到如下错误
     ```
@@ -108,14 +105,14 @@ Moodle是一个学习平台，旨在为教育工作者、管理人员和学习�
     | Use Application Cache                         | false          | Moodle 是否启用 Application Cache                    |
     | Application Cache Node Type                   | cache.r5.large | ElastiCache 实例大小                                 |
     | Use CloudFront                                | false           | 是否创建 CloudFront                                  |
-    | CloudFront Certificate ID uploaded in AWS IAM |                | CloudFront 使用的 SSL 证书ID, 必须提前上传到 AWS IAM |
+    | CloudFront Certificate ARN                    |                | CloudFront 使用的 SSL 证书ARN, 需要提前在 ACM 中创建 |
 
     **Web Tier**
 
     | 参数                   | 默认值   | 描述                                          |
     | ---------------------- | -------- | --------------------------------------------- |
     | Public ALB Domain Name |          | ALB 自定义域名                                |
-    | ALB Certificate ARN    |          | ALB 使用的 SSL 证书ID, 必须提前上传到 AWS IAM |
+    | ALB Certificate ARN    |          | ALB 使用的 SSL 证书ID, 必须提前在 ACM 中创建 |
     | Web Tier Instance Type | c5.large | Web 实例大小                                  |
     | Web ASG Max            | 1        | Web Auto Scaling Group 最大值                 |
     | Web ASG Min            | 1        | Web Auto Scaling Group 最小值                 |
@@ -150,8 +147,4 @@ Moodle是一个学习平台，旨在为教育工作者、管理人员和学习�
 
 登录到您的 DNS Resolver 控制台，配置域名指向这两处 DNS Name。
 
-
-## 构建自己的解决方案
-
-点击查看[文档](build.md)
 

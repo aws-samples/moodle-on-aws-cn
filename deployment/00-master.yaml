@@ -53,7 +53,7 @@ Metadata:
         - UseApplicationCacheBoolean
         - ApplicationCacheNodeType
         - UseCloudFrontBoolean
-        - CloudFrontIamCertificateId
+        - CloudFrontAcmCertificate
     - Label:
         default: Web Tier
       Parameters:
@@ -67,8 +67,8 @@ Metadata:
       Parameters:
         - MoodleLocale
     ParameterLabels:
-      CloudFrontIamCertificateId:
-        default: CloudFront Certificate ID uploaded in AWS IAM
+      CloudFrontAcmCertificate:
+        default: CloudFront Certificate ARN
       # DatabaseCmk:
       #   default: AWS KMS CMK for RDS 
       # DatabaseEncrpytedBoolean:
@@ -146,16 +146,14 @@ Metadata:
 
 
 Parameters:
-  PublicAlbCertificateArn:
-    AllowedPattern: ^$|(arn:aws-cn:iam)::([0-9]{12}):server-certificate/(.*)$
-    Description: '[ Optional ] The certificate ARN for the ALB certificate - this certificate should be created in the region you wish to run the ALB and must reference the Moodle domain name you use below.'
+  PublicAlbAcmCertificate:
+    AllowedPattern: ^$|(arn:aws:acm:)([a-z0-9/:-])*([a-z0-9])$
+    Description: '[ Optional ] The AWS Certification Manager certificate ARN for the ALB certificate - this certificate should be created in the region you wish to run the ALB and must reference the domain name you use below.'
     Type: String
-    Default: ''
-  CloudFrontIamCertificateId:
-    AllowedPattern: ^$|(arn:aws-cn:iam)::([0-9]{12}):server-certificate/(.*)$
+  CloudFrontAcmCertificate:
+    AllowedPattern: ^$|(arn:aws:acm:)([a-z0-9/:-])*([a-z0-9])$
     Description: '[ Optional ] The AWS Certification Manager certificate ARN for the CloudFront distribution certificate - this certificate should be created in the us-east-1 (N. Virginia) region and must reference the Moodle domain name you use below.'
     Type: String
-    Default: ''
   # DatabaseCmk:
   #   Description: AWS KMS Customer Master Key (CMK) to encrypt database cluster
   #   Type: String
@@ -498,7 +496,7 @@ Conditions:
   PublicAlbDomainName:
     !Not [!Equals [ '', !Ref PublicAlbDomainName ] ]
   DomainHttps:
-    !Not [ !Equals ['', !Ref CloudFrontIamCertificateId] ] 
+    !Not [ !Equals ['', !Ref CloudFrontAcmCertificate] ]
 
 Resources:
   vpc:
@@ -736,8 +734,8 @@ Resources:
     Type: AWS::CloudFormation::Stack
     Properties:
       Parameters:
-        CloudFrontIamCertificateId:
-          !Ref CloudFrontIamCertificateId
+        CloudFrontAcmCertificate:
+          !Ref CloudFrontAcmCertificate
         PublicAlbDomainName: 
           !If [PublicAlbDomainName, !Ref PublicAlbDomainName , !GetAtt [ publicalb, Outputs.PublicAlbDnsName ] ]
         DomainName:

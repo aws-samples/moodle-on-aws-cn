@@ -11,15 +11,15 @@ Metadata:
         default: ALB Parameters
       Parameters:
         - Vpc
-        - PublicAlbCertificateArn
+        - PublicAlbAcmCertificate
         - PublicAlbSecurityGroup
         - NumberOfSubnets
         - Subnet
     ParameterLabels:
       Vpc:
         default: Vpc Id
-      PublicAlbCertificateArn:
-        default: ALB Certificate ARN
+      PublicAlbAcmCertificate:
+        default: ALB Certificate ARN in ACM
       PublicAlbSecurityGroup:
         default: Public ALB Security Group
       NumberOfSubnets:
@@ -39,11 +39,10 @@ Parameters:
     Default: 3
     Description: Number of subnets. This must match your selections in the list of subnets below.
     Type: String 
-  PublicAlbCertificateArn:
-    AllowedPattern: ^$|(arn:aws-cn:iam)::([0-9]{12}):server-certificate/(.*)$
-    Description: '[ Optional ] The certificate ARN for the ALB certificate - this certificate should be created in the region you wish to run the ALB and must reference the Moodle domain name you use below.'
+  PublicAlbAcmCertificate:
+    AllowedPattern: ^$|(arn:aws:acm:)([a-z0-9/:-])*([a-z0-9])$
+    Description: '[ Optional ] The AWS Certification Manager certificate ARN for the ALB certificate - this certificate should be created in the region you wish to run the ALB and must reference the Moodle domain name you use below.'
     Type: String
-    Default: ''
   PublicAlbSecurityGroup:
     Description: Select the ALB security group.
     Type: AWS::EC2::SecurityGroup::Id
@@ -57,9 +56,9 @@ Parameters:
 Conditions:
 
   SslCertificate:
-    !Not [!Equals [ '', !Ref PublicAlbCertificateArn ] ]
+    !Not [!Equals [ '', !Ref PublicAlbAcmCertificate ] ]
   NoSslCertificate:
-    !Equals [ '', !Ref PublicAlbCertificateArn ]
+    !Equals [ '', !Ref PublicAlbAcmCertificate ]
   NumberOfSubnets1:
       !Equals [ 1, !Ref NumberOfSubnets ]
   NumberOfSubnets2:
@@ -125,7 +124,7 @@ Resources:
     Type : AWS::ElasticLoadBalancingV2::Listener
     Properties:
       Certificates:
-      - CertificateArn: !Ref PublicAlbCertificateArn
+      - CertificateArn: !Ref PublicAlbAcmCertificate
       DefaultActions:
       - Type: forward
         TargetGroupArn: !Ref PublicAlbTargetGroup

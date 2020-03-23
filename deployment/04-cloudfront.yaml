@@ -11,21 +11,24 @@ Metadata:
         default: AWS Parameters
       Parameters:
         - DomainName
-        - CloudFrontIamCertificateId
+        - CloudFrontAcmCertificate
         - PublicAlbDomainName
-        - PublicAlbCertificate 
+        - PublicAlbCertificate
     ParameterLabels:
-      CloudFrontIamCertificateId:
-        default: CloudFront Certificate ID in AWS IAM
+      CloudFrontAcmCertificate:
+        default: CloudFront Certificate ARN
       PublicAlbDomainName:
         default: Public ALB DNS Name
       DomainName:
         default: Domain name of the Moodle site
+      PublicAlbCertificate:
+        default: Public ALB has SSL Certificate?
 
 Parameters:
 
-  CloudFrontIamCertificateId:
-    Description: '[ Optional ] The ID of SSL Certificate which has been uploaded to AWS IAM'
+  CloudFrontAcmCertificate:
+    AllowedPattern: ^$|(arn:aws:acm:)([a-z0-9/:-])*([a-z0-9])$
+    Description: 'The AWS Certification Manager certificate ARN for the CloudFront distribution certificate - this certificate should be created in the cn-northwest-1 (Ningxia) region and must reference the Moodle domain name you use below.'
     Type: String
   DomainName:
     AllowedPattern: ^$|(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$
@@ -46,9 +49,9 @@ Parameters:
 Conditions:
 
   SslCertificate:
-    !Not [ !Equals [ '', !Ref CloudFrontIamCertificateId ] ]
+    !Not [ !Equals [ '', !Ref CloudFrontAcmCertificate ] ]
   NoSslCertificate:
-    !Equals [ '', !Ref CloudFrontIamCertificateId ]
+    !Equals [ '', !Ref CloudFrontAcmCertificate ]
   DomainName:
     !Not [ !Equals [ '', !Ref DomainName ] ]  
   NoDomainName:
@@ -142,7 +145,7 @@ Resources:
             OriginProtocolPolicy: !If [ PublicAlbCertificate, 'https-only', 'http-only' ]
         PriceClass: PriceClass_All
         ViewerCertificate:
-          IamCertificateId: !Ref CloudFrontIamCertificateId
+          AcmCertificateArn: !Ref CloudFrontAcmCertificate
           SslSupportMethod: sni-only
           MinimumProtocolVersion: TLSv1
 
