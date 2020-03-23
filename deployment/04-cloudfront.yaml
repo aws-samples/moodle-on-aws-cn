@@ -27,7 +27,7 @@ Metadata:
 Parameters:
 
   CloudFrontAcmCertificate:
-    AllowedPattern: ^$|(arn:aws:acm:)([a-z0-9/:-])*([a-z0-9])$
+    AllowedPattern: ^$|(arn:aws-cn:acm:)([a-z0-9/:-])*([a-z0-9])$
     Description: 'The AWS Certification Manager certificate ARN for the CloudFront distribution certificate - this certificate should be created in the cn-northwest-1 (Ningxia) region and must reference the Moodle domain name you use below.'
     Type: String
   DomainName:

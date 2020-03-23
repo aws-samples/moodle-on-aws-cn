@@ -58,7 +58,7 @@ Metadata:
         default: Web Tier
       Parameters:
         - PublicAlbDomainName
-        - PublicAlbCertificateArn
+        - PublicAlbAcmCertificate
         - WebInstanceType
         - WebAsgMax
         - WebAsgMin
@@ -93,7 +93,7 @@ Metadata:
         default: EC2 Key Pair
       PublicAlbDomainName:
         default: Public ALB Domain Name
-      PublicAlbCertificateArn:
+      PublicAlbAcmCertificate:
         default: ALB Certificate ARN
       SshAccessCidr:
         default: SSH Access From
@@ -147,11 +147,11 @@ Metadata:
 
 Parameters:
   PublicAlbAcmCertificate:
-    AllowedPattern: ^$|(arn:aws:acm:)([a-z0-9/:-])*([a-z0-9])$
+    AllowedPattern: ^$|(arn:aws-cn:acm:)([a-z0-9/:-])*([a-z0-9])$
     Description: '[ Optional ] The AWS Certification Manager certificate ARN for the ALB certificate - this certificate should be created in the region you wish to run the ALB and must reference the domain name you use below.'
     Type: String
   CloudFrontAcmCertificate:
-    AllowedPattern: ^$|(arn:aws:acm:)([a-z0-9/:-])*([a-z0-9])$
+    AllowedPattern: ^$|(arn:aws-cn:acm:)([a-z0-9/:-])*([a-z0-9])$
     Description: '[ Optional ] The AWS Certification Manager certificate ARN for the CloudFront distribution certificate - this certificate should be created in the us-east-1 (N. Virginia) region and must reference the Moodle domain name you use below.'
     Type: String
   # DatabaseCmk:
@@ -492,7 +492,7 @@ Conditions:
   DeployCloudFront: 
     !Equals [ true, !Ref UseCloudFrontBoolean ]
   PublicAlbCertificate:
-    !Not [!Equals [ '', !Ref PublicAlbCertificateArn ] ]
+    !Not [!Equals [ '', !Ref PublicAlbAcmCertificate ] ]
   PublicAlbDomainName:
     !Not [!Equals [ '', !Ref PublicAlbDomainName ] ]
   DomainHttps:
@@ -551,8 +551,8 @@ Resources:
           !Ref NumberOfAZs
         Subnet:
           !GetAtt [ vpc, Outputs.PublicSubnet ]
-        PublicAlbCertificateArn:
-          !Ref PublicAlbCertificateArn
+        PublicAlbAcmCertificate:
+          !Ref PublicAlbAcmCertificate
         PublicAlbSecurityGroup:
           !GetAtt [ securitygroups, Outputs.PublicAlbSecurityGroup ]
         Vpc:

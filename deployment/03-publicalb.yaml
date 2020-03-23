@@ -40,7 +40,7 @@ Parameters:
     Description: Number of subnets. This must match your selections in the list of subnets below.
     Type: String 
   PublicAlbAcmCertificate:
-    AllowedPattern: ^$|(arn:aws:acm:)([a-z0-9/:-])*([a-z0-9])$
+    AllowedPattern: ^$|(arn:aws-cn:acm:)([a-z0-9/:-])*([a-z0-9])$
     Description: '[ Optional ] The AWS Certification Manager certificate ARN for the ALB certificate - this certificate should be created in the region you wish to run the ALB and must reference the Moodle domain name you use below.'
     Type: String
   PublicAlbSecurityGroup:
